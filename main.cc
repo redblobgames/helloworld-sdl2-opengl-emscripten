@@ -16,7 +16,10 @@ static void SDLFAIL(const char* name) {
   exit(EXIT_FAILURE);
 }
 
+std::unique_ptr<Renderer> renderer;
 static bool main_loop_running = true;
+
+float camera[2] = {0.0, 0.0};
 
 void main_loop() {
   SDL_Event event;
@@ -25,8 +28,20 @@ void main_loop() {
     case SDL_QUIT:
       main_loop_running = false;
       break;
+    case SDL_KEYUP:
+      int sym = event.key.keysym.sym;
+      if (sym == SDLK_q) { main_loop_running = false; }
+      break;
     }
   }
+
+  const Uint8* pressed = SDL_GetKeyboardState(nullptr);
+  if (pressed[SDL_SCANCODE_LEFT]) { camera[0] += 0.01; }
+  if (pressed[SDL_SCANCODE_RIGHT]) { camera[0] -= 0.01; }
+  if (pressed[SDL_SCANCODE_DOWN]) { camera[1] += 0.01; }
+  if (pressed[SDL_SCANCODE_UP]) { camera[1] -= 0.01; }
+  
+  renderer->Render();
 }
 
 
@@ -34,8 +49,7 @@ int main() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) { SDLFAIL("SDL_Init"); }
   SDL_GL_SetSwapInterval(1);
   
-  Renderer renderer;
-  renderer.Render();
+  renderer = std::unique_ptr<Renderer>(new Renderer);
     
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.

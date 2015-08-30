@@ -102,6 +102,13 @@ void Renderer::Render() {
   glUseProgram(self->shader->id);
   GLERRORS("useProgram");
 
+  // The uniforms are data that will be the same for all records. The
+  // attributes are data in each record.
+  extern float camera[2];
+  GLfloat u_camera[2] = { camera[0], camera[1] };
+  glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera"), 1, u_camera);
+  GLERRORS("glUniform2fv");
+  
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
@@ -123,8 +130,10 @@ void Renderer::Render() {
   // bind the position and rotation inside the struct.
   auto loc_position = glGetAttribLocation(self->shader->id, "a_position");
   auto loc_rotation = glGetAttribLocation(self->shader->id, "a_rotation");
-  glVertexAttribPointer(loc_position, 2, GL_FLOAT, GL_FALSE, sizeof(triangle[0]), reinterpret_cast<GLvoid*>(offsetof(Attributes, position)));
-  glVertexAttribPointer(loc_rotation, 1, GL_FLOAT, GL_FALSE, sizeof(triangle[0]), reinterpret_cast<GLvoid*>(offsetof(Attributes, rotation)));
+  glVertexAttribPointer(loc_position, 2, GL_FLOAT, GL_FALSE, sizeof(triangle[0]),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, position)));
+  glVertexAttribPointer(loc_rotation, 1, GL_FLOAT, GL_FALSE, sizeof(triangle[0]),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, rotation)));
   GLERRORS("glVertexAttribPointer");
 
   // Run the shader program. Enable the vertex attribs just while
@@ -159,11 +168,12 @@ VertexBuffer::~VertexBuffer() {
 // Shader program for drawing sprites
 
 GLchar vertex_shader[] =
+  "uniform vec2 u_camera;\n"
   "attribute vec2 a_position;\n"
   "attribute float a_rotation;\n"
   "\n"
   "void main() {\n"
-  "  gl_Position = vec4(a_position, sin(a_rotation), 1.0);\n"
+  "  gl_Position = vec4(a_position - u_camera, sin(a_rotation), 1.0);\n"
   "}\n";
 
 GLchar fragment_shader[] =
