@@ -4,6 +4,7 @@
 
 #include "render.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 #ifdef __APPLE__
 // NOTE(amitp): Mac doesn't have OpenGL ES headers, and the path to GL
@@ -58,12 +59,13 @@ struct Attributes {
   float corner[2]; // location of corner relative to center
   float position[2]; // location of center in world coordinates
   float rotation; // rotation in radians
-  float scale;
+  float scale; // size of sprite, in world coordinates
 };
 
 struct RendererImpl {
   SDL_Window* window;
   SDL_GLContext context;
+  GLuint texture_id;
   std::unique_ptr<VertexBuffer> vbo;
   std::unique_ptr<ShaderProgram> shader;
 };
@@ -72,7 +74,7 @@ struct RendererImpl {
 Renderer::Renderer(): self(new RendererImpl) {
   // We always want double buffering
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
+  
   self->window = SDL_CreateWindow("Hello World",
                                  SDL_WINDOWPOS_UNDEFINED,
                                  SDL_WINDOWPOS_UNDEFINED,
@@ -85,10 +87,30 @@ Renderer::Renderer(): self(new RendererImpl) {
   self->context = SDL_GL_CreateContext(self->window);
   if (self->context == nullptr) { SDLFAIL("SDL_GL_CreateContext"); }
   
-  glClearColor(0.5, 0.0, 0.0, 1.0);
+  glClearColor(1.0, 1.0, 1.0, 1.0);
 
   self->shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
   self->vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
+
+  auto surface = IMG_Load("red-blob.png");
+  if (surface == nullptr) { SDLFAIL("Loading red-blob.png"); }
+
+  glGenTextures(1, &self->texture_id);
+  glBindTexture(GL_TEXTURE_2D, self->texture_id);
+  glTexImage2D(GL_TEXTURE_2D, 0,
+               GL_RGBA,
+               surface->w, surface->h,
+               0,
+               GL_RGBA /* for red-blob.bmp only */,
+               GL_UNSIGNED_BYTE,
+               surface->pixels
+               );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  SDL_FreeSurface(surface);
+  
+  GLERRORS("Texture load");
 }
 
 Renderer::~Renderer() {
@@ -107,10 +129,18 @@ void Renderer::Render() {
 
   // The uniforms are data that will be the same for all records. The
   // attributes are data in each record.
-  extern float camera[2];
+  extern float camera[2], rotation;
   GLfloat u_camera[2] = { camera[0], camera[1] };
   glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera"), 1, u_camera);
   GLERRORS("glUniform2fv");
+
+  // Textures have an id and also a register (0 in this
+  // case). We have to bind register 0 to the texture id:
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, self->texture_id);
+  // and then we have to tell the shader which register (0) to use:
+  glUniform1i(glGetUniformLocation(self->shader->id, "u_texture"), 0);
+  // It might be ok to hard-code the register number inside the shader.
   
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
@@ -133,7 +163,7 @@ void Renderer::Render() {
     vertices[i].corner[1] = corners[i % 6][1];
     vertices[i].position[0] = 0.0;
     vertices[i].position[1] = 0.0;
-    vertices[i].rotation = 0.3;
+    vertices[i].rotation = rotation;
     vertices[i].scale = 0.5;
   }
 
@@ -214,9 +244,10 @@ GLchar fragment_shader[] =
   "precision mediump float;\n"
   "\n"
 #endif
+  "uniform sampler2D u_texture;\n"
   "varying vec2 loc;\n"
   "void main() {\n"
-  "  gl_FragColor = vec4(loc + vec2(0.5,0.5),1.0,1.0);\n"
+  "  gl_FragColor = texture2D(u_texture, loc + vec2(0.5,0.5));\n"
   "}\n";
 
 ShaderProgram::ShaderProgram() {

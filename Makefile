@@ -1,4 +1,5 @@
 MODULES = main render
+ASSETS = red-blob.png
 
 BUILDDIR = build
 OUTPUTDIR = bin
@@ -7,10 +8,10 @@ OBJS = $(patsubst %,$(BUILDDIR)/%.o,$(MODULES))
 
 LOCALFLAGS = -std=c++11 -g -O2 -Wall
 LOCALINCLUDE = $(shell sdl2-config --cflags)
-LOCALLIBS = $(shell sdl2-config --libs) -framework OpenGL
+LOCALLIBS = $(shell sdl2-config --libs) -lSDL2_image -framework OpenGL
 
 EMXX = em++
-EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2
+EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2 -s USE_SDL_IMAGE=2
 
 all: $(OUTPUTDIR)/main GTAGS
 
@@ -24,8 +25,8 @@ $(OUTPUTDIR)/main: $(OBJS)
 	mkdir -p $(dir $@)
 	$(CXX) $(LOCALFLAGS) $^ $(LOCALLIBS) -o $@
 
-$(OUTPUTDIR)/main.html: $(patsubst %.o,%.em.o,$(OBJS))
-	$(EMXX) $(EMXXFLAGS) $^ -o $@
+$(OUTPUTDIR)/main.html: $(patsubst %.o,%.em.o,$(OBJS)) $(ASSETS)
+	$(EMXX) $(EMXXFLAGS) $(filter %.o,$^) $(patsubst %,--preload-file %,$(ASSETS)) -o $@
 
 $(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@

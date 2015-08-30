@@ -20,6 +20,7 @@ std::unique_ptr<Renderer> renderer;
 static bool main_loop_running = true;
 
 float camera[2] = {0.0, 0.0};
+float rotation = 3.1415;
 
 void main_loop() {
   SDL_Event event;
@@ -30,16 +31,18 @@ void main_loop() {
       break;
     case SDL_KEYUP:
       int sym = event.key.keysym.sym;
-      if (sym == SDLK_q) { main_loop_running = false; }
+      if (sym == SDLK_ESCAPE) { main_loop_running = false; }
       break;
     }
   }
 
   const Uint8* pressed = SDL_GetKeyboardState(nullptr);
-  if (pressed[SDL_SCANCODE_LEFT]) { camera[0] += 0.01; }
-  if (pressed[SDL_SCANCODE_RIGHT]) { camera[0] -= 0.01; }
-  if (pressed[SDL_SCANCODE_DOWN]) { camera[1] += 0.01; }
-  if (pressed[SDL_SCANCODE_UP]) { camera[1] -= 0.01; }
+  if (pressed[SDL_SCANCODE_Q]) { camera[0] += 0.01; }
+  if (pressed[SDL_SCANCODE_E]) { camera[0] -= 0.01; }
+  if (pressed[SDL_SCANCODE_S]) { camera[1] += 0.01; }
+  if (pressed[SDL_SCANCODE_W]) { camera[1] -= 0.01; }
+  if (pressed[SDL_SCANCODE_A]) { rotation -= 0.05; }
+  if (pressed[SDL_SCANCODE_D]) { rotation += 0.05; }
   
   renderer->Render();
 }
