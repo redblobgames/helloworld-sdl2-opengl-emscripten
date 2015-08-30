@@ -16,9 +16,10 @@
 
 
 #include <iostream>
+#include <vector>
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 500
+#define SCREEN_HEIGHT 500
 
 
 static void GLERRORS(const char* name) {
@@ -54,8 +55,10 @@ struct ShaderProgram {
 };
 
 struct Attributes {
-  float position[2];
-  float rotation;
+  float corner[2]; // location of corner relative to center
+  float position[2]; // location of center in world coordinates
+  float rotation; // rotation in radians
+  float scale;
 };
 
 struct RendererImpl {
@@ -113,14 +116,28 @@ void Renderer::Render() {
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo->id);
-  const Attributes triangle[3] = {
-    { { -0.5,  0.5 }, 0.0 },
-    { {  0.5,  0.5 }, 0.0 },
-    { {  0.5, -0.5 }, 0.0 },
-    //    { { -0.5, -0.5 }, 0.0 },
+  static const float corners[6][2] = {
+    { -0.5,  0.5 },
+    {  0.5,  0.5 },
+    {  0.5, -0.5 },
+    {  0.5, -0.5 },
+    { -0.5, -0.5 },
+    { -0.5,  0.5 },
   };
 
-  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STREAM_DRAW);
+  // Build the vertex buffer data. Most of this is per-sprite, but the
+  // corner data is per-vertex and independent of the sprite.
+  std::vector<Attributes> vertices(12);
+  for (int i = 0; i < 6; i++) {
+    vertices[i].corner[0] = corners[i % 6][0];
+    vertices[i].corner[1] = corners[i % 6][1];
+    vertices[i].position[0] = 0.0;
+    vertices[i].position[1] = 0.0;
+    vertices[i].rotation = 0.3;
+    vertices[i].scale = 0.5;
+  }
+
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Attributes) * vertices.size(), vertices.data(), GL_STREAM_DRAW);
   
   // Tell the shader program where to find each of the input variables
   // ("attributes") in its vertex shader input. They're all coming
@@ -128,23 +145,33 @@ void Renderer::Render() {
   // data. The API is flexible enough to allow us to have a start
   // position and stride within the vertex buffer. This allows us to
   // bind the position and rotation inside the struct.
+  auto loc_corner = glGetAttribLocation(self->shader->id, "a_corner");
   auto loc_position = glGetAttribLocation(self->shader->id, "a_position");
   auto loc_rotation = glGetAttribLocation(self->shader->id, "a_rotation");
-  glVertexAttribPointer(loc_position, 2, GL_FLOAT, GL_FALSE, sizeof(triangle[0]),
+  auto loc_scale = glGetAttribLocation(self->shader->id, "a_scale");
+  glVertexAttribPointer(loc_corner, 2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, corner)));
+  glVertexAttribPointer(loc_position, 2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
                         reinterpret_cast<GLvoid*>(offsetof(Attributes, position)));
-  glVertexAttribPointer(loc_rotation, 1, GL_FLOAT, GL_FALSE, sizeof(triangle[0]),
+  glVertexAttribPointer(loc_rotation, 1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
                         reinterpret_cast<GLvoid*>(offsetof(Attributes, rotation)));
+  glVertexAttribPointer(loc_scale, 1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, scale)));
   GLERRORS("glVertexAttribPointer");
 
   // Run the shader program. Enable the vertex attribs just while
   // running this program. Which ones are enabled is global state, and
   // we don't want to interfere with any other shader programs we want
   // to run elsewhere.
+  glEnableVertexAttribArray(loc_corner);
   glEnableVertexAttribArray(loc_position);
   glEnableVertexAttribArray(loc_rotation);
-  glDrawArrays(GL_TRIANGLES, 0, 3 * 1);
+  glEnableVertexAttribArray(loc_scale);
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+  glDisableVertexAttribArray(loc_scale);
   glDisableVertexAttribArray(loc_rotation);
   glDisableVertexAttribArray(loc_position);
+  glDisableVertexAttribArray(loc_corner);
   GLERRORS("draw arrays");
 
   // In double buffering, all the drawing was to a screen buffer that
@@ -169,21 +196,27 @@ VertexBuffer::~VertexBuffer() {
 
 GLchar vertex_shader[] =
   "uniform vec2 u_camera;\n"
+  "attribute vec2 a_corner;\n"
   "attribute vec2 a_position;\n"
   "attribute float a_rotation;\n"
+  "attribute float a_scale;\n"
+  "varying vec2 loc;\n"
   "\n"
   "void main() {\n"
-  "  gl_Position = vec4(a_position - u_camera, sin(a_rotation), 1.0);\n"
+  "  mat2 rot = mat2(cos(a_rotation), sin(a_rotation), -sin(a_rotation), cos(a_rotation));\n"
+  "  gl_Position = vec4(a_corner * rot * a_scale + a_position - u_camera, 0.0, 1.0);\n"
+  "  loc = a_corner;\n"
   "}\n";
 
 GLchar fragment_shader[] =
 #ifdef __EMSCRIPTEN__
-  // NOTE(amitp): WebGL requires this but OpenGL 2.1 disallows this, I think.
+  // NOTE(amitp): WebGL requires precision hints but OpenGL 2.1 disallows them
   "precision mediump float;\n"
   "\n"
 #endif
+  "varying vec2 loc;\n"
   "void main() {\n"
-  "  gl_FragColor = vec4(1.0,0.0,1.0,1.0);\n"
+  "  gl_FragColor = vec4(loc + vec2(0.5,0.5),1.0,1.0);\n"
   "}\n";
 
 ShaderProgram::ShaderProgram() {
