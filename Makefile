@@ -5,34 +5,36 @@ OUTPUTDIR = bin
 
 OBJS = $(patsubst %,$(BUILDDIR)/%.o,$(MODULES))
 
-CXXFLAGS = -std=c++11 -g -O2 -Wall
-INCLUDE = $(shell sdl2-config --cflags)
+LOCALFLAGS = -std=c++11 -g -O2 -Wall
+LOCALINCLUDE = $(shell sdl2-config --cflags)
+LOCALLIBS = $(shell sdl2-config --libs) -framework OpenGL
+
 EMXX = em++
 EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2
-LIBS = $(shell sdl2-config --libs) -framework OpenGL
 
-all: $(OUTPUTDIR)/main
+all: $(OUTPUTDIR)/main GTAGS
 
 GTAGS: $(wildcard *.cc) $(wildcard *.h)
-	gtags --sqlite3
+	[ -r GTAGS ] || gtags --sqlite3
+	global -u
 
 emscripten: $(OUTPUTDIR)/main.html
 
 $(OUTPUTDIR)/main: $(OBJS)
 	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $^ $(LIBS) -o $@
+	$(CXX) $(LOCALFLAGS) $^ $(LOCALLIBS) -o $@
 
 $(OUTPUTDIR)/main.html: $(patsubst %.o,%.em.o,$(OBJS))
-	$(EMXX) $(EMXXFLAGS) $(INCLUDE) $^ -o $@
+	$(EMXX) $(EMXXFLAGS) $^ -o $@
 
 $(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
 $(BUILDDIR)/%.o: %.cc
 	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(INCLUDE) -MMD -c $< -o $@
+	$(CXX) $(LOCALFLAGS) $(LOCALINCLUDE) -MMD -c $< -o $@
 
 include $(wildcard $(BUILDDIR)/*.d)
 
 clean:
-	rm -f $(BUILDDIR)/* $(OUTPUTDIR)/*
+	rm -f GTAGS GRTAGS GPATH $(BUILDDIR)/* $(OUTPUTDIR)/*
