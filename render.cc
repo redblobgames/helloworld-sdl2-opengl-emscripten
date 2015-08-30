@@ -64,7 +64,7 @@ struct RendererImpl {
   std::unique_ptr<VertexBuffer> vbo;
   std::unique_ptr<ShaderProgram> shader;
 };
-  
+
 
 Renderer::Renderer(): self(new RendererImpl) {
   // We always want double buffering
@@ -91,7 +91,6 @@ Renderer::Renderer(): self(new RendererImpl) {
 Renderer::~Renderer() {
   SDL_GL_DeleteContext(self->context);
   SDL_DestroyWindow(self->window);
-  SDL_Quit();
   GLERRORS("~Renderer");
 }
 
