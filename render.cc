@@ -46,16 +46,17 @@ struct VertexBuffer {
 };
 
 struct ShaderProgram {
-  GLuint program_id;
-  GLuint loc_position;
-  GLuint loc_rotation;
+  GLuint id;
   
   ShaderProgram();
   ~ShaderProgram();
-  GLuint LoadShader(GLenum type, const GLchar* source);
+  void AttachShader(GLenum type, const GLchar* source);
 };
 
-
+struct Attributes {
+  float position[2];
+  float rotation;
+};
 
 struct RendererImpl {
   SDL_Window* window;
@@ -99,41 +100,43 @@ void Renderer::Render() {
   glClear(GL_COLOR_BUFFER_BIT);
   GLERRORS("Clear");
   
-  glUseProgram(self->shader->program_id);
+  glUseProgram(self->shader->id);
   GLERRORS("useProgram");
 
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo->id);
-  const uint32_t points = 4;
-  const uint32_t floatsPerPoint = 3;
-  const GLfloat square[points * floatsPerPoint] =
-    { -0.5, 0.5, 0.0, 0.5, 0.5, 0.0, 0.5, -0.5, 0.0, -0.5, -0.5, 0.0 };
-  uint32_t sizeInBytes = sizeof(square);
+  const Attributes triangle[3] = {
+    { { -0.5,  0.5 }, 0.0 },
+    { {  0.5,  0.5 }, 0.0 },
+    { {  0.5, -0.5 }, 0.0 },
+    //    { { -0.5, -0.5 }, 0.0 },
+  };
 
-  glBufferData(GL_ARRAY_BUFFER, sizeInBytes, square, GL_STREAM_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STREAM_DRAW);
   
   // Tell the shader program where to find each of the input variables
   // ("attributes") in its vertex shader input. They're all coming
   // from the same vertex buffer, but they're different slices of that
   // data. The API is flexible enough to allow us to have a start
-  // position and stride within the vertex buffer. That allows us to
-  // use an array of struct { float pos[2]; float rotation; } and then
-  // bind pos and rotation to separate vertex shader attributes.
-  glVertexAttribPointer(self->shader->loc_position, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
-  glVertexAttribPointer(self->shader->loc_rotation, 1, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat) /* should be size of struct */, (GLvoid*)(2*sizeof(GLfloat)));
+  // position and stride within the vertex buffer. This allows us to
+  // bind the position and rotation inside the struct.
+  auto loc_position = glGetAttribLocation(self->shader->id, "a_position");
+  auto loc_rotation = glGetAttribLocation(self->shader->id, "a_rotation");
+  glVertexAttribPointer(loc_position, 2, GL_FLOAT, GL_FALSE, sizeof(triangle[0]), reinterpret_cast<GLvoid*>(offsetof(Attributes, position)));
+  glVertexAttribPointer(loc_rotation, 1, GL_FLOAT, GL_FALSE, sizeof(triangle[0]), reinterpret_cast<GLvoid*>(offsetof(Attributes, rotation)));
   GLERRORS("glVertexAttribPointer");
 
   // Run the shader program. Enable the vertex attribs just while
   // running this program. Which ones are enabled is global state, and
   // we don't want to interfere with any other shader programs we want
   // to run elsewhere.
-  glEnableVertexAttribArray(self->shader->loc_position);
-  glEnableVertexAttribArray(self->shader->loc_rotation);
+  glEnableVertexAttribArray(loc_position);
+  glEnableVertexAttribArray(loc_rotation);
   glDrawArrays(GL_TRIANGLES, 0, 3 * 1);
-  glDisableVertexAttribArray(self->shader->loc_rotation);
-  glDisableVertexAttribArray(self->shader->loc_position);
+  glDisableVertexAttribArray(loc_rotation);
+  glDisableVertexAttribArray(loc_position);
   GLERRORS("draw arrays");
 
   // In double buffering, all the drawing was to a screen buffer that
@@ -175,57 +178,48 @@ GLchar fragment_shader[] =
   "}\n";
 
 ShaderProgram::ShaderProgram() {
-  auto vshader_id = LoadShader(GL_VERTEX_SHADER, vertex_shader);
-  if (vshader_id == 0) { SDLFAIL("LoadShader(vertex)"); }
-  auto fshader_id = LoadShader(GL_FRAGMENT_SHADER, fragment_shader);
-  if (fshader_id == 0) { SDLFAIL("LoadShader(fragment)"); }
+  id = glCreateProgram();
+  if (id == 0) { SDLFAIL("glCreateProgram"); }
 
-  program_id = glCreateProgram();
-  if (program_id == 0) { SDLFAIL("glCreateProgram"); }
-
-  glAttachShader(program_id, vshader_id);
-  glAttachShader(program_id, fshader_id);
-  glLinkProgram(program_id);
+  AttachShader(GL_VERTEX_SHADER, vertex_shader);
+  AttachShader(GL_FRAGMENT_SHADER, fragment_shader);
+  glLinkProgram(id);
   
   GLint link_status;
-  glGetProgramiv(program_id, GL_LINK_STATUS, &link_status);
+  glGetProgramiv(id, GL_LINK_STATUS, &link_status);
   if (!link_status) {
     GLint log_length;
-    glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &log_length);
+    glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_length);
     GLchar log[1024];
-    glGetProgramInfoLog(program_id, 1024, nullptr, log);
+    glGetProgramInfoLog(id, 1024, nullptr, log);
     std::cerr << log << std::endl;
     SDLFAIL("link shaders");
   }
-
-  glDeleteShader(vshader_id);
-  glDeleteShader(fshader_id);
-  
-  loc_position = glGetAttribLocation(program_id, "a_position");
-  loc_rotation = glGetAttribLocation(program_id, "a_rotation");
 }
 
 ShaderProgram::~ShaderProgram() {
-  if (program_id != 0) { glDeleteProgram(program_id); }
+  glDeleteProgram(id);
 }
 
-GLuint ShaderProgram::LoadShader(GLenum type, const GLchar* source) {
-  GLuint id = glCreateShader(type);
-  if (id == 0) { SDLFAIL("load shader"); }
+void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
+  GLuint shader_id = glCreateShader(type);
+  if (shader_id == 0) { SDLFAIL("load shader"); }
            
-  glShaderSource(id, 1, &source, nullptr);
-  glCompileShader(id);
+  glShaderSource(shader_id, 1, &source, nullptr);
+  glCompileShader(shader_id);
 
   GLint compile_status;
-  glGetShaderiv(id, GL_COMPILE_STATUS, &compile_status);
+  glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compile_status);
   if (!compile_status) {
     GLint log_length;
-    glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_length);
+    glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &log_length);
     GLchar log[1024];
-    glGetShaderInfoLog(id, 1024, nullptr, log);
+    glGetShaderInfoLog(shader_id, 1024, nullptr, log);
     std::cerr << log << std::endl;
     SDLFAIL("compile shader");
   }
 
-  return id;
+  glAttachShader(id, shader_id);
+  glDeleteShader(shader_id);
+  GLERRORS("AttachShader()");
 }
