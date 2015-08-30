@@ -92,7 +92,7 @@ Renderer::Renderer(): self(new RendererImpl) {
   self->shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
   self->vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
 
-  auto surface = IMG_Load("red-blob.png");
+  auto surface = IMG_Load("assets/red-blob.png");
   if (surface == nullptr) { SDLFAIL("Loading red-blob.png"); }
 
   glGenTextures(1, &self->texture_id);
