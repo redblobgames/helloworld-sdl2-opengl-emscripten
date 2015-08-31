@@ -80,7 +80,7 @@ Renderer::Renderer(): self(new RendererImpl) {
                                  SDL_WINDOWPOS_UNDEFINED,
                                  SCREEN_WIDTH,
                                  SCREEN_HEIGHT,
-                                 SDL_WINDOW_OPENGL
+                                 SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
                                  );
   if (self->window == nullptr) { SDLFAIL("SDL_CreateWindow"); }
 
