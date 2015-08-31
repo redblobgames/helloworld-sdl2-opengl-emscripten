@@ -7,13 +7,16 @@
 
 #include <memory>
 
+struct SDL_Window;
 struct RendererImpl;
 
 class Renderer {
 public:
-  Renderer();
+  Renderer(SDL_Window* window);
   ~Renderer();
   void Render();
+  void HandleResize();
+  
 private:
   std::unique_ptr<RendererImpl> self;
 };

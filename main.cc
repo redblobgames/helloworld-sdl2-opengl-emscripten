@@ -11,12 +11,16 @@
 #include <emscripten.h>
 #endif
 
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 480
+
 static void SDLFAIL(const char* name) {
   std::cerr << name << " failed : " << SDL_GetError() << std::endl;
   exit(EXIT_FAILURE);
 }
 
 std::unique_ptr<Renderer> renderer;
+SDL_Window* window;
 static bool main_loop_running = true;
 static bool main_loop_rendering = true;
 
@@ -55,6 +59,7 @@ void main_loop() {
         break;
       }
       case SDL_WINDOWEVENT_SIZE_CHANGED: {
+        renderer->HandleResize();
         break;
       }
       }
@@ -80,8 +85,17 @@ void main_loop() {
 int main() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) { SDLFAIL("SDL_Init"); }
   SDL_GL_SetSwapInterval(1);
+
+  window = SDL_CreateWindow("Hello World",
+                            SDL_WINDOWPOS_UNDEFINED,
+                            SDL_WINDOWPOS_UNDEFINED,
+                            SCREEN_WIDTH,
+                            SCREEN_HEIGHT,
+                            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+                            );
+  if (window == nullptr) { SDLFAIL("SDL_CreateWindow"); }
   
-  renderer = std::unique_ptr<Renderer>(new Renderer);
+  renderer = std::unique_ptr<Renderer>(new Renderer(window));
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.
@@ -93,5 +107,6 @@ int main() {
   }
 #endif
   
+  SDL_DestroyWindow(window);
   SDL_Quit();
 }

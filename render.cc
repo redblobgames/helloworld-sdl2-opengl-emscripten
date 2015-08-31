@@ -19,10 +19,6 @@
 #include <iostream>
 #include <vector>
 
-#define SCREEN_WIDTH 500
-#define SCREEN_HEIGHT 500
-
-
 static void GLERRORS(const char* name) {
 #ifndef __EMSCRIPTEN__
   while (true) {
@@ -68,40 +64,37 @@ struct RendererImpl {
   GLuint texture_id;
   std::unique_ptr<VertexBuffer> vbo;
   std::unique_ptr<ShaderProgram> shader;
+
+  RendererImpl(SDL_Window* window);
+  ~RendererImpl();
 };
 
 
-Renderer::Renderer(): self(new RendererImpl) {
-  // We always want double buffering
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  
-  self->window = SDL_CreateWindow("Hello World",
-                                 SDL_WINDOWPOS_UNDEFINED,
-                                 SDL_WINDOWPOS_UNDEFINED,
-                                 SCREEN_WIDTH,
-                                 SCREEN_HEIGHT,
-                                 SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-                                 );
-  if (self->window == nullptr) { SDLFAIL("SDL_CreateWindow"); }
+Renderer::Renderer(SDL_Window* window): self(new RendererImpl(window)) {}
+Renderer::~Renderer() {}
 
-  self->context = SDL_GL_CreateContext(self->window);
-  if (self->context == nullptr) { SDLFAIL("SDL_GL_CreateContext"); }
+
+RendererImpl::RendererImpl(SDL_Window* window_): window(window_) {
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+  context = SDL_GL_CreateContext(window);
+  if (context == nullptr) { SDLFAIL("SDL_GL_CreateContext"); }
   
   glClearColor(1.0, 1.0, 1.0, 1.0);
 
-  self->shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
-  self->vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
+  shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
+  vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
 
   auto surface = IMG_Load("assets/red-blob.png");
   if (surface == nullptr) { SDLFAIL("Loading red-blob.png"); }
 
-  glGenTextures(1, &self->texture_id);
-  glBindTexture(GL_TEXTURE_2D, self->texture_id);
+  glGenTextures(1, &texture_id);
+  glBindTexture(GL_TEXTURE_2D, texture_id);
   glTexImage2D(GL_TEXTURE_2D, 0,
                GL_RGBA,
                surface->w, surface->h,
                0,
-               GL_RGBA /* for red-blob.bmp only */,
+               GL_RGBA /* assume the PNG is in this format */,
                GL_UNSIGNED_BYTE,
                surface->pixels
                );
@@ -113,10 +106,20 @@ Renderer::Renderer(): self(new RendererImpl) {
   GLERRORS("Texture load");
 }
 
-Renderer::~Renderer() {
-  SDL_GL_DeleteContext(self->context);
-  SDL_DestroyWindow(self->window);
-  GLERRORS("~Renderer");
+RendererImpl::~RendererImpl() {
+  shader = nullptr;
+  vbo = nullptr;
+  SDL_GL_DeleteContext(context);
+  GLERRORS("~RendererImpl");
+}
+
+
+void Renderer::HandleResize() {
+  // This is the easiest way to handle resize but it'd be better not
+  // to regenerate the texture
+  SDL_Window* window = self->window;
+  self = nullptr;
+  self = std::unique_ptr<RendererImpl>(new RendererImpl(window));
 }
 
 
@@ -130,8 +133,16 @@ void Renderer::Render() {
   // The uniforms are data that will be the same for all records. The
   // attributes are data in each record.
   extern float camera[2], rotation;
-  GLfloat u_camera[2] = { camera[0], camera[1] };
-  glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera"), 1, u_camera);
+  GLfloat u_camera_position[2] = { camera[0], camera[1] };
+  glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera_position"), 1, u_camera_position);
+
+  int sdl_window_width, sdl_window_height;
+  SDL_GL_GetDrawableSize(self->window, &sdl_window_width, &sdl_window_height);
+  float sdl_window_size = std::min(sdl_window_height, sdl_window_width);
+  GLfloat u_camera_scale[2] = { sdl_window_size / sdl_window_width,
+                                sdl_window_size / sdl_window_height };
+  glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera_scale"), 1, u_camera_scale);
+  
   GLERRORS("glUniform2fv");
 
   // Textures have an id and also a register (0 in this
@@ -225,7 +236,8 @@ VertexBuffer::~VertexBuffer() {
 // Shader program for drawing sprites
 
 GLchar vertex_shader[] =
-  "uniform vec2 u_camera;\n"
+  "uniform vec2 u_camera_position;\n"
+  "uniform vec2 u_camera_scale;\n"
   "attribute vec2 a_corner;\n"
   "attribute vec2 a_position;\n"
   "attribute float a_rotation;\n"
@@ -234,7 +246,7 @@ GLchar vertex_shader[] =
   "\n"
   "void main() {\n"
   "  mat2 rot = mat2(cos(a_rotation), sin(a_rotation), -sin(a_rotation), cos(a_rotation));\n"
-  "  gl_Position = vec4(a_corner * rot * a_scale + a_position - u_camera, 0.0, 1.0);\n"
+  "  gl_Position = vec4((a_corner * rot * a_scale + a_position - u_camera_position) * u_camera_scale, 0.0, 1.0);\n"
   "  loc = a_corner;\n"
   "}\n";
 
