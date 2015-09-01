@@ -136,11 +136,16 @@ void Renderer::Render() {
   GLfloat u_camera_position[2] = { camera[0], camera[1] };
   glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera_position"), 1, u_camera_position);
 
+  // Rescale from world coordinates to OpenGL coordinates. We can
+  // either choose for the world coordinates to have Y increasing
+  // downwards (by setting u_camera_scale[1] to be negative) or have Y
+  // increasing upwards and flipping the textures (by telling the
+  // texture shader to flip the Y coordinate).
   int sdl_window_width, sdl_window_height;
   SDL_GL_GetDrawableSize(self->window, &sdl_window_width, &sdl_window_height);
   float sdl_window_size = std::min(sdl_window_height, sdl_window_width);
   GLfloat u_camera_scale[2] = { sdl_window_size / sdl_window_width,
-                                sdl_window_size / sdl_window_height };
+                                -sdl_window_size / sdl_window_height };
   glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera_scale"), 1, u_camera_scale);
   
   GLERRORS("glUniform2fv");
@@ -158,12 +163,8 @@ void Renderer::Render() {
   // parameters, and I'm going to fill it each frame.
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo->id);
   static const float corners[6][2] = {
-    { -0.5,  0.5 },
-    {  0.5,  0.5 },
-    {  0.5, -0.5 },
-    {  0.5, -0.5 },
-    { -0.5, -0.5 },
-    { -0.5,  0.5 },
+    { 0, 0 }, { 1, 0 }, { 0, 1 },
+    { 0, 1 }, { 1, 0 }, { 1, 1 },
   };
 
   // Build the vertex buffer data. Most of this is per-sprite, but the
@@ -245,8 +246,11 @@ GLchar vertex_shader[] =
   "varying vec2 loc;\n"
   "\n"
   "void main() {\n"
-  "  mat2 rot = mat2(cos(a_rotation), sin(a_rotation), -sin(a_rotation), cos(a_rotation));\n"
-  "  gl_Position = vec4((a_corner * rot * a_scale + a_position - u_camera_position) * u_camera_scale, 0.0, 1.0);\n"
+  "  mat2 rot = mat2(cos(a_rotation), -sin(a_rotation), sin(a_rotation), cos(a_rotation));\n"
+  "  vec2 local_coords = (a_corner - vec2(0.5,0.5)) * rot * a_scale;\n"
+  "  vec2 world_coords = local_coords + a_position;\n"
+  "  vec2 screen_coords = (world_coords - u_camera_position) * u_camera_scale;\n"
+  "  gl_Position = vec4(screen_coords, 0.0, 1.0);\n"
   "  loc = a_corner;\n"
   "}\n";
 
@@ -259,7 +263,7 @@ GLchar fragment_shader[] =
   "uniform sampler2D u_texture;\n"
   "varying vec2 loc;\n"
   "void main() {\n"
-  "  gl_FragColor = texture2D(u_texture, loc + vec2(0.5,0.5));\n"
+  "  gl_FragColor = texture2D(u_texture, loc);\n"
   "}\n";
 
 ShaderProgram::ShaderProgram() {

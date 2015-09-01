@@ -25,7 +25,7 @@ static bool main_loop_running = true;
 static bool main_loop_rendering = true;
 
 float camera[2] = {0.0, 0.0};
-float rotation = 3.1415;
+float rotation = 0;
 
 void main_loop() {
   SDL_Event event;
@@ -69,10 +69,10 @@ void main_loop() {
   }
 
   const Uint8* pressed = SDL_GetKeyboardState(nullptr);
-  if (pressed[SDL_SCANCODE_Q]) { camera[0] += 0.01; }
-  if (pressed[SDL_SCANCODE_E]) { camera[0] -= 0.01; }
-  if (pressed[SDL_SCANCODE_S]) { camera[1] += 0.01; }
+  if (pressed[SDL_SCANCODE_Q]) { camera[0] -= 0.01; }
+  if (pressed[SDL_SCANCODE_E]) { camera[0] += 0.01; }
   if (pressed[SDL_SCANCODE_W]) { camera[1] -= 0.01; }
+  if (pressed[SDL_SCANCODE_S]) { camera[1] += 0.01; }
   if (pressed[SDL_SCANCODE_A]) { rotation -= 0.05; }
   if (pressed[SDL_SCANCODE_D]) { rotation += 0.05; }
   
