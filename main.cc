@@ -11,8 +11,8 @@
 #include <emscripten.h>
 #endif
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
 
 static void SDLFAIL(const char* name) {
   std::cerr << name << " failed : " << SDL_GetError() << std::endl;

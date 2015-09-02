@@ -37,7 +37,7 @@ static void SDLFAIL(const char* name) {
 
 
 struct VertexBuffer {
-  GLuint id;
+  GLuint vid, iid; // vertex and index
 
   VertexBuffer();
   ~VertexBuffer();
@@ -132,30 +132,37 @@ void Renderer::HandleResize() {
   self = std::unique_ptr<RendererImpl>(new RendererImpl(window));
 }
 
-
-std::vector<Attributes> vertices;
-  static const float corners[6][2] = {
-    { 0, 0 }, { 1, 0 }, { 0, 1 },
-    { 0, 1 }, { 1, 0 }, { 1, 1 },
-  };
-
-void FillVertexData() {
-  extern float rotation;
-  
-  const int SIDE = 71;
+extern float rotation;
+namespace {
+  const int SIDE = 100;
   const int NUM = SIDE * SIDE;
-  static float t = 0.0;
-  t += 0.025;
-  vertices.resize(NUM * 6);
-  for (int i = 0; i < NUM * 6; i++) {
-    Attributes& record = vertices[i];
-    int j = i / 6;
-    record.corner[0] = corners[i % 6][0];
-    record.corner[1] = corners[i % 6][1];
-    record.position[0] = -1.0 + (j % SIDE) * 2.0 / SIDE;
-    record.position[1] = -1.0 + (j / SIDE) * 2.0 / SIDE;
-    record.rotation = rotation + (j * 0.02) + t;
-    record.scale = 0.08;
+
+  std::vector<Attributes> vertices;
+  std::vector<GLushort> indices;
+  static const float corner_vertex[4][2] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } };
+  static const GLushort corner_index[6] = { 0, 1, 2, 2, 1, 3 };
+
+  void FillVertexData() {
+    static float t = 0.0;
+    t += 0.025;
+    
+    vertices.resize(NUM * 4);
+    for (int i = 0; i < NUM * 4; i++) {
+      Attributes& record = vertices[i];
+      int j = i / 4;
+      record.corner[0] = corner_vertex[i % 4][0];
+      record.corner[1] = corner_vertex[i % 4][1];
+      record.position[0] = -1.0 + (j % SIDE) * 2.0 / SIDE;
+      record.position[1] = -1.0 + (j / SIDE) * 2.0 / SIDE;
+      record.rotation = rotation + (j * 0.02) + t;
+      record.scale = 2.0/SIDE;
+    }
+
+    indices.resize(NUM * 6);
+    for (int i = 0; i < NUM * 6; i++) {
+      int j = i / 6;
+      indices[i] = j * 4 + corner_index[i % 6];
+    }
   }
 }
 
@@ -197,14 +204,14 @@ void Renderer::Render() {
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo->id);
-
-  // Build the vertex buffer data. Most of this is per-sprite, but the
-  // corner data is per-vertex and independent of the sprite.
   FillVertexData();
-
-  glBufferData(GL_ARRAY_BUFFER, sizeof(Attributes) * vertices.size(), vertices.data(), GL_STREAM_DRAW);
   
+  glBindBuffer(GL_ARRAY_BUFFER, self->vbo->vid);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Attributes) * vertices.size(), vertices.data(), GL_STREAM_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo->iid);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices.size(), indices.data(), GL_STREAM_DRAW);
+
   // Tell the shader program where to find each of the input variables
   // ("attributes") in its vertex shader input. They're all coming
   // from the same vertex buffer, but they're different slices of that
@@ -233,7 +240,7 @@ void Renderer::Render() {
   glEnableVertexAttribArray(self->shader->loc_a_position);
   glEnableVertexAttribArray(self->shader->loc_a_rotation);
   glEnableVertexAttribArray(self->shader->loc_a_scale);
-  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+  glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
   glDisableVertexAttribArray(self->shader->loc_a_scale);
   glDisableVertexAttribArray(self->shader->loc_a_rotation);
   glDisableVertexAttribArray(self->shader->loc_a_position);
@@ -249,12 +256,14 @@ void Renderer::Render() {
 // Vertex buffer stores the data needed to run the shader program
 
 VertexBuffer::VertexBuffer() {
-  glGenBuffers(1, &id);
+  glGenBuffers(1, &vid);
+  glGenBuffers(1, &iid);
   GLERRORS("VertexBuffer()");
 }
 
 VertexBuffer::~VertexBuffer() {
-  glDeleteBuffers(1, &id);
+  glDeleteBuffers(1, &iid);
+  glDeleteBuffers(1, &vid);
 }
 
 
