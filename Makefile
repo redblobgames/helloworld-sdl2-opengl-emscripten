@@ -19,6 +19,7 @@ LOCALINCLUDE = $(shell sdl2-config --cflags)
 LOCALLIBS = $(shell sdl2-config --libs) -lSDL2_image -framework OpenGL
 
 EMXX = em++
+# --profiling
 EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2 -s USE_SDL_IMAGE=2
 
 all: $(LOCALOUTPUT)/main GTAGS
@@ -29,18 +30,18 @@ GTAGS: $(wildcard *.cc) $(wildcard *.h)
 
 emscripten: $(EMXXOUTPUT)/index.html
 
-$(LOCALOUTPUT)/main: $(MODULES:%=$(BUILDDIR)/%.o)
+$(LOCALOUTPUT)/main: $(MODULES:%=$(BUILDDIR)/%.o) Makefile
 	@mkdir -p $(dir $@)
-	$(CXX) $(LOCALFLAGS) $^ $(LOCALLIBS) -o $@
+	$(CXX) $(LOCALFLAGS) $(filter %.o,$^) $(LOCALLIBS) -o $@
 
-$(EMXXOUTPUT)/index.html: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS)
+$(EMXXOUTPUT)/index.html: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
 	@mkdir -p $(dir $@)
 	$(EMXX) $(EMXXFLAGS) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
 
-$(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o
+$(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o Makefile
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(BUILDDIR)/%.o: %.cc
+$(BUILDDIR)/%.o: %.cc Makefile
 	@mkdir -p $(dir $@)
 	$(CXX) $(LOCALFLAGS) $(LOCALINCLUDE) -MMD -c $< -o $@
 
