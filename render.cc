@@ -45,7 +45,15 @@ struct VertexBuffer {
 
 struct ShaderProgram {
   GLuint id;
-  
+
+  GLint loc_u_camera_position;
+  GLint loc_u_camera_scale;
+  GLint loc_u_texture;
+  GLint loc_a_corner;
+  GLint loc_a_position;
+  GLint loc_a_rotation;
+  GLint loc_a_scale;
+
   ShaderProgram();
   ~ShaderProgram();
   void AttachShader(GLenum type, const GLchar* source);
@@ -81,6 +89,8 @@ RendererImpl::RendererImpl(SDL_Window* window_): window(window_) {
   if (context == nullptr) { SDLFAIL("SDL_GL_CreateContext"); }
   
   glClearColor(1.0, 1.0, 1.0, 1.0);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
   shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
   vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
@@ -123,18 +133,44 @@ void Renderer::HandleResize() {
 }
 
 
+std::vector<Attributes> vertices;
+  static const float corners[6][2] = {
+    { 0, 0 }, { 1, 0 }, { 0, 1 },
+    { 0, 1 }, { 1, 0 }, { 1, 1 },
+  };
+
+void FillVertexData() {
+  extern float rotation;
+  
+  const int SIDE = 71;
+  const int NUM = SIDE * SIDE;
+  static float t = 0.0;
+  t += 0.025;
+  vertices.resize(NUM * 6);
+  for (int i = 0; i < NUM * 6; i++) {
+    Attributes& record = vertices[i];
+    int j = i / 6;
+    record.corner[0] = corners[i % 6][0];
+    record.corner[1] = corners[i % 6][1];
+    record.position[0] = -1.0 + (j % SIDE) * 2.0 / SIDE;
+    record.position[1] = -1.0 + (j / SIDE) * 2.0 / SIDE;
+    record.rotation = rotation + (j * 0.02) + t;
+    record.scale = 0.08;
+  }
+}
+
+
 void Renderer::Render() {
   glClear(GL_COLOR_BUFFER_BIT);
-  GLERRORS("Clear");
   
   glUseProgram(self->shader->id);
   GLERRORS("useProgram");
 
   // The uniforms are data that will be the same for all records. The
   // attributes are data in each record.
-  extern float camera[2], rotation;
+  extern float camera[2];
   GLfloat u_camera_position[2] = { camera[0], camera[1] };
-  glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera_position"), 1, u_camera_position);
+  glUniform2fv(self->shader->loc_u_camera_position, 1, u_camera_position);
 
   // Rescale from world coordinates to OpenGL coordinates. We can
   // either choose for the world coordinates to have Y increasing
@@ -146,7 +182,7 @@ void Renderer::Render() {
   float sdl_window_size = std::min(sdl_window_height, sdl_window_width);
   GLfloat u_camera_scale[2] = { sdl_window_size / sdl_window_width,
                                 -sdl_window_size / sdl_window_height };
-  glUniform2fv(glGetUniformLocation(self->shader->id, "u_camera_scale"), 1, u_camera_scale);
+  glUniform2fv(self->shader->loc_u_camera_scale, 1, u_camera_scale);
   
   GLERRORS("glUniform2fv");
 
@@ -155,29 +191,17 @@ void Renderer::Render() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, self->texture_id);
   // and then we have to tell the shader which register (0) to use:
-  glUniform1i(glGetUniformLocation(self->shader->id, "u_texture"), 0);
+  glUniform1i(self->shader->loc_u_texture, 0);
   // It might be ok to hard-code the register number inside the shader.
   
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo->id);
-  static const float corners[6][2] = {
-    { 0, 0 }, { 1, 0 }, { 0, 1 },
-    { 0, 1 }, { 1, 0 }, { 1, 1 },
-  };
 
   // Build the vertex buffer data. Most of this is per-sprite, but the
   // corner data is per-vertex and independent of the sprite.
-  std::vector<Attributes> vertices(12);
-  for (int i = 0; i < 6; i++) {
-    vertices[i].corner[0] = corners[i % 6][0];
-    vertices[i].corner[1] = corners[i % 6][1];
-    vertices[i].position[0] = 0.0;
-    vertices[i].position[1] = 0.0;
-    vertices[i].rotation = rotation;
-    vertices[i].scale = 0.5;
-  }
+  FillVertexData();
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(Attributes) * vertices.size(), vertices.data(), GL_STREAM_DRAW);
   
@@ -187,17 +211,17 @@ void Renderer::Render() {
   // data. The API is flexible enough to allow us to have a start
   // position and stride within the vertex buffer. This allows us to
   // bind the position and rotation inside the struct.
-  auto loc_corner = glGetAttribLocation(self->shader->id, "a_corner");
-  auto loc_position = glGetAttribLocation(self->shader->id, "a_position");
-  auto loc_rotation = glGetAttribLocation(self->shader->id, "a_rotation");
-  auto loc_scale = glGetAttribLocation(self->shader->id, "a_scale");
-  glVertexAttribPointer(loc_corner, 2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+  glVertexAttribPointer(self->shader->loc_a_corner,
+                        2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
                         reinterpret_cast<GLvoid*>(offsetof(Attributes, corner)));
-  glVertexAttribPointer(loc_position, 2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+  glVertexAttribPointer(self->shader->loc_a_position,
+                        2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
                         reinterpret_cast<GLvoid*>(offsetof(Attributes, position)));
-  glVertexAttribPointer(loc_rotation, 1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+  glVertexAttribPointer(self->shader->loc_a_rotation,
+                        1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
                         reinterpret_cast<GLvoid*>(offsetof(Attributes, rotation)));
-  glVertexAttribPointer(loc_scale, 1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+  glVertexAttribPointer(self->shader->loc_a_scale,
+                        1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
                         reinterpret_cast<GLvoid*>(offsetof(Attributes, scale)));
   GLERRORS("glVertexAttribPointer");
 
@@ -205,15 +229,15 @@ void Renderer::Render() {
   // running this program. Which ones are enabled is global state, and
   // we don't want to interfere with any other shader programs we want
   // to run elsewhere.
-  glEnableVertexAttribArray(loc_corner);
-  glEnableVertexAttribArray(loc_position);
-  glEnableVertexAttribArray(loc_rotation);
-  glEnableVertexAttribArray(loc_scale);
+  glEnableVertexAttribArray(self->shader->loc_a_corner);
+  glEnableVertexAttribArray(self->shader->loc_a_position);
+  glEnableVertexAttribArray(self->shader->loc_a_rotation);
+  glEnableVertexAttribArray(self->shader->loc_a_scale);
   glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-  glDisableVertexAttribArray(loc_scale);
-  glDisableVertexAttribArray(loc_rotation);
-  glDisableVertexAttribArray(loc_position);
-  glDisableVertexAttribArray(loc_corner);
+  glDisableVertexAttribArray(self->shader->loc_a_scale);
+  glDisableVertexAttribArray(self->shader->loc_a_rotation);
+  glDisableVertexAttribArray(self->shader->loc_a_position);
+  glDisableVertexAttribArray(self->shader->loc_a_corner);
   GLERRORS("draw arrays");
 
   // In double buffering, all the drawing was to a screen buffer that
@@ -284,6 +308,14 @@ ShaderProgram::ShaderProgram() {
     std::cerr << log << std::endl;
     SDLFAIL("link shaders");
   }
+
+  loc_u_camera_position = glGetUniformLocation(id, "u_camera_position");
+  loc_u_camera_scale = glGetUniformLocation(id, "u_camera_scale");
+  loc_u_texture = glGetUniformLocation(id, "u_texture");
+  loc_a_corner = glGetAttribLocation(id, "a_corner");
+  loc_a_position = glGetAttribLocation(id, "a_position");
+  loc_a_rotation = glGetAttribLocation(id, "a_rotation");
+  loc_a_scale = glGetAttribLocation(id, "a_scale");
 }
 
 ShaderProgram::~ShaderProgram() {
