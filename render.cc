@@ -61,6 +61,7 @@ struct AttributesDynamic {
 };
 
 struct RendererImpl {
+  bool context_initialized;
   SDL_Window* window;
   SDL_GLContext context;
   GLuint texture_id;
@@ -77,7 +78,9 @@ Renderer::Renderer(SDL_Window* window): self(new RendererImpl(window)) {}
 Renderer::~Renderer() {}
 
 
-RendererImpl::RendererImpl(SDL_Window* window_): window(window_) {
+RendererImpl::RendererImpl(SDL_Window* window_):
+  context_initialized(false), window(window_)
+{
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
   context = SDL_GL_CreateContext(window);
@@ -123,7 +126,7 @@ RendererImpl::~RendererImpl() {
 
 void Renderer::HandleResize() {
   // This is the easiest way to handle resize but it'd be better not
-  // to regenerate the texture
+  // to regenerate the texture.
   SDL_Window* window = self->window;
   self = nullptr;
   self = std::unique_ptr<RendererImpl>(new RendererImpl(window));
@@ -213,12 +216,12 @@ void Renderer::Render() {
   // parameters, and I'm going to fill it each frame.
   FillVertexData();
 
-  if (FRAME % 100 == 0) {
+  if (FRAME % 100 == 0 || !self->context_initialized) {
     glBindBuffer(GL_ARRAY_BUFFER, self->vbo->sid);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(AttributesStatic) * vertices_static.size(), vertices_static.data(), GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(AttributesStatic) * vertices_static.size(), vertices_static.data(), GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo->iid);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices.size(), indices.data(), GL_STREAM_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
   }
   
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo->did);
@@ -248,6 +251,8 @@ void Renderer::Render() {
   
   GLERRORS("glVertexAttribPointer");
 
+  self->context_initialized = true;
+  
   // Run the shader program. Enable the vertex attribs just while
   // running this program. Which ones are enabled is global state, and
   // we don't want to interfere with any other shader programs we want
