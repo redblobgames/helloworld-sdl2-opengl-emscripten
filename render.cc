@@ -37,13 +37,18 @@ struct VertexBuffer {
 struct ShaderProgram {
   GLuint id;
 
+  // Uniforms
   GLint loc_u_camera_position;
   GLint loc_u_camera_scale;
   GLint loc_u_texture;
+  
+  // A sprite is described with "static" attributes:
   GLint loc_a_corner;
+  GLint loc_a_texcoord;
+
+  // and "dynamic" attributes that are expected to change every frame:
   GLint loc_a_position;
   GLint loc_a_rotation;
-  GLint loc_a_scale;
 
   ShaderProgram();
   ~ShaderProgram();
@@ -51,8 +56,8 @@ struct ShaderProgram {
 };
 
 struct AttributesStatic {
-  float corner[2]; // location of corner relative to center
-  float scale; // size of sprite, in world coordinates
+  float corner[2]; // location of corner relative to center, in world coords
+  float texcoord[2]; // texture u,v of this corner
 };
 
 struct AttributesDynamic {
@@ -142,20 +147,23 @@ namespace {
   std::vector<AttributesStatic> vertices_static;
   std::vector<AttributesDynamic> vertices_dynamic;
   std::vector<GLushort> indices;
-  static const float corner_vertex[4][2] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } };
+  static const float corner_vertex[4][2] = { { -0.5, -0.5 }, { 0.5, -0.5 }, { -0.5, 0.5 }, { 0.5, 0.5 } };
+  static const float texcoord_vertex[4][2] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } };
   static const GLushort corner_index[6] = { 0, 1, 2, 2, 1, 3 };
 
   void FillVertexData() {
     static float t = 0.0;
-    t += 0.025;
+    t += 0.01;
 
+    float scale = 2.0 / SIDE;
     if (FRAME % 100 == 0) {
       vertices_static.resize(NUM * 4);
       for (int i = 0; i < NUM * 4; i++) {
         AttributesStatic& record = vertices_static[i];
-        record.corner[0] = corner_vertex[i % 4][0];
-        record.corner[1] = corner_vertex[i % 4][1];
-        record.scale = 3.0/SIDE;
+        record.corner[0] = corner_vertex[i % 4][0] * scale;
+        record.corner[1] = corner_vertex[i % 4][1] * scale;
+        record.texcoord[0] = texcoord_vertex[i % 4][0];
+        record.texcoord[1] = texcoord_vertex[i % 4][1];
       }
     
       indices.resize(NUM * 6);
@@ -169,9 +177,9 @@ namespace {
     for (int i = 0; i < NUM * 4; i++) {
       AttributesDynamic& record = vertices_dynamic[i];
       int j = i / 4;
-      record.position[0] = -1.0 + (j % SIDE) * 2.0 / SIDE;
-      record.position[1] = -1.0 + (j / SIDE) * 2.0 / SIDE;
-      record.rotation = rotation + (j * 0.02) + t;
+      record.position[0] = (j % SIDE - 0.5*SIDE) * 2.0 / SIDE;
+      record.position[1] = (j / SIDE - 0.5*SIDE + 0.5*(j&1)) * 2.0 / SIDE;
+      record.rotation = rotation + (j * 0.03 * t);
     }
   }
 }
@@ -237,9 +245,9 @@ void Renderer::Render() {
   glVertexAttribPointer(self->shader->loc_a_corner,
                         2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
                         reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, corner)));
-  glVertexAttribPointer(self->shader->loc_a_scale,
-                        1, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
-                        reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, scale)));
+  glVertexAttribPointer(self->shader->loc_a_texcoord,
+                        2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
+                        reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, texcoord)));
   
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo->did);
   glVertexAttribPointer(self->shader->loc_a_position,
@@ -258,13 +266,13 @@ void Renderer::Render() {
   // we don't want to interfere with any other shader programs we want
   // to run elsewhere.
   glEnableVertexAttribArray(self->shader->loc_a_corner);
+  glEnableVertexAttribArray(self->shader->loc_a_texcoord);
   glEnableVertexAttribArray(self->shader->loc_a_position);
   glEnableVertexAttribArray(self->shader->loc_a_rotation);
-  glEnableVertexAttribArray(self->shader->loc_a_scale);
   glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
-  glDisableVertexAttribArray(self->shader->loc_a_scale);
   glDisableVertexAttribArray(self->shader->loc_a_rotation);
   glDisableVertexAttribArray(self->shader->loc_a_position);
+  glDisableVertexAttribArray(self->shader->loc_a_texcoord);
   glDisableVertexAttribArray(self->shader->loc_a_corner);
   GLERRORS("draw arrays");
 
@@ -296,18 +304,18 @@ GLchar vertex_shader[] =
   "uniform vec2 u_camera_position;\n"
   "uniform vec2 u_camera_scale;\n"
   "attribute vec2 a_corner;\n"
+  "attribute vec2 a_texcoord;\n"
   "attribute vec2 a_position;\n"
   "attribute float a_rotation;\n"
-  "attribute float a_scale;\n"
-  "varying vec2 loc;\n"
+  "varying vec2 v_texcoord;\n"
   "\n"
   "void main() {\n"
   "  mat2 rot = mat2(cos(a_rotation), -sin(a_rotation), sin(a_rotation), cos(a_rotation));\n"
-  "  vec2 local_coords = (a_corner - vec2(0.5,0.5)) * rot * a_scale;\n"
+  "  vec2 local_coords = a_corner * rot;\n"
   "  vec2 world_coords = local_coords + a_position;\n"
   "  vec2 screen_coords = (world_coords - u_camera_position) * u_camera_scale;\n"
   "  gl_Position = vec4(screen_coords, 0.0, 1.0);\n"
-  "  loc = a_corner;\n"
+  "  v_texcoord = a_texcoord;\n"
   "}\n";
 
 GLchar fragment_shader[] =
@@ -317,9 +325,9 @@ GLchar fragment_shader[] =
   "\n"
 #endif
   "uniform sampler2D u_texture;\n"
-  "varying vec2 loc;\n"
+  "varying vec2 v_texcoord;\n"
   "void main() {\n"
-  "  gl_FragColor = texture2D(u_texture, loc);\n"
+  "  gl_FragColor = texture2D(u_texture, v_texcoord);\n"
   "}\n";
 
 ShaderProgram::ShaderProgram() {
@@ -345,9 +353,9 @@ ShaderProgram::ShaderProgram() {
   loc_u_camera_scale = glGetUniformLocation(id, "u_camera_scale");
   loc_u_texture = glGetUniformLocation(id, "u_texture");
   loc_a_corner = glGetAttribLocation(id, "a_corner");
+  loc_a_texcoord = glGetAttribLocation(id, "a_texcoord");
   loc_a_position = glGetAttribLocation(id, "a_position");
   loc_a_rotation = glGetAttribLocation(id, "a_rotation");
-  loc_a_scale = glGetAttribLocation(id, "a_scale");
 }
 
 ShaderProgram::~ShaderProgram() {
