@@ -3,7 +3,9 @@ I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled 
 On the Mac I installed these libraries for compilation:
 
 #+begin_src sh
-brew install SDL2 SDL2_image emscripten 
+brew install SDL2 SDL2_image emscripten
+git submodule init
+git submodule update
 #+end_src
 
 To run the native code:
@@ -19,3 +21,7 @@ make emscripten
 #+end_src
 
 and then tell the webserver to serve the files from =bin/=.
+
+The Emscripten-ed output is [[http://www.redblobgames.com/x/1535-opengl-emscripten/html/][here]].
+
+The font included in this project is [[https://www.google.com/fonts/specimen/Share+Tech+Mono][Share Tech Mono]], under the SIL Open Font License 1.1.

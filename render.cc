@@ -1,25 +1,16 @@
-// From http://www.redblobgames.com/x/1535-opengl-emscripten/
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
 #include "render.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
-#ifdef __APPLE__
-// NOTE(amitp): Mac doesn't have OpenGL ES headers, and the path to GL
-// headers is different.
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#else
-#include <SDL2/SDL_opengles2.h>
-#endif
-
+#include "gl.h"
+#include "textures.h"
 
 #include <iostream>
 #include <vector>
 
-static void GLERRORS(const char* name) {
+void GLERRORS(const char* name) {
 #ifndef __EMSCRIPTEN__
   while (true) {
     GLenum err = glGetError();
@@ -73,6 +64,7 @@ struct RendererImpl {
   SDL_Window* window;
   SDL_GLContext context;
   GLuint texture_id;
+  Textures textures;
   std::unique_ptr<VertexBuffer> vbo;
   std::unique_ptr<ShaderProgram> shader;
 
@@ -98,7 +90,7 @@ RendererImpl::RendererImpl(SDL_Window* window_): window(window_) {
   shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
   vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
 
-  auto surface = IMG_Load("assets/red-blob.png");
+  auto surface = textures.GetSurface();
   if (surface == nullptr) { SDLFAIL("Loading red-blob.png"); }
 
   glGenTextures(1, &texture_id);
@@ -107,7 +99,9 @@ RendererImpl::RendererImpl(SDL_Window* window_): window(window_) {
                GL_RGBA,
                surface->w, surface->h,
                0,
-               GL_RGBA /* assume the PNG is in this format */,
+               surface->format->BytesPerPixel == 1? GL_ALPHA
+               : surface->format->BytesPerPixel == 3? GL_RGB
+               : GL_RGBA /* TODO: check for other formats */,
                GL_UNSIGNED_BYTE,
                surface->pixels
                );

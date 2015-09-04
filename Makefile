@@ -7,8 +7,8 @@
 # For native builds, $LOCALOUTPUT/ and assets/ are needed
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
-MODULES = main render
-ASSETS = assets/red-blob.png
+MODULES = main render textures
+ASSETS = assets/red-blob.png assets/font.ttf
 
 BUILDDIR = build
 LOCALOUTPUT = bin
