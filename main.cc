@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 
 #include "render.h"
+#include "common.h"
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
@@ -13,10 +14,6 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
-static void SDLFAIL(const char* name) {
-  std::cerr << name << " failed : " << SDL_GetError() << std::endl;
-  exit(EXIT_FAILURE);
-}
 
 std::unique_ptr<Renderer> renderer;
 SDL_Window* window;
@@ -82,7 +79,7 @@ void main_loop() {
 
 
 int main() {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) { SDLFAIL("SDL_Init"); }
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) { FAIL("SDL_Init"); }
   SDL_GL_SetSwapInterval(1);
 
   window = SDL_CreateWindow("Hello World",
@@ -92,7 +89,7 @@ int main() {
                             SCREEN_HEIGHT,
                             SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
                             );
-  if (window == nullptr) { SDLFAIL("SDL_CreateWindow"); }
+  if (window == nullptr) { FAIL("SDL_CreateWindow"); }
   
   renderer = std::unique_ptr<Renderer>(new Renderer(window));
 

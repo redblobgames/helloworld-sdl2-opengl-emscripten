@@ -15,6 +15,7 @@
 #include <SDL2/SDL_opengles2.h>
 #endif
 
-void GLERRORS(const char* name);
+// Check for any OpenGL errors and print them
+void GLERRORS(const char* label);
 
 #endif

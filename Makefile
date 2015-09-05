@@ -8,7 +8,7 @@
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
 MODULES = main render textures
-ASSETS = assets/red-blob.png assets/font.ttf
+ASSETS = assets/red-blob.png assets/share-tech-mono.ttf
 
 BUILDDIR = build
 LOCALOUTPUT = bin

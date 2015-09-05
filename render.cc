@@ -10,19 +10,19 @@
 #include <iostream>
 #include <vector>
 
-void GLERRORS(const char* name) {
+void GLERRORS(const char* label) {
 #ifndef __EMSCRIPTEN__
   while (true) {
     GLenum err = glGetError();
     if (err == GL_NO_ERROR) { break; }
-    std::cerr << name << " glGetError returned " << err << std::endl;
+    std::cerr << label << " glGetError returned " << err << std::endl;
   }
 #endif
 }
 
-static void SDLFAIL(const char* name) {
-  GLERRORS(name);
-  std::cerr << name << " failed : " << SDL_GetError() << std::endl;
+void FAIL(const char* label) {
+  GLERRORS(label);
+  std::cerr << label << " failed : " << SDL_GetError() << std::endl;
   exit(EXIT_FAILURE);
 }
 
@@ -57,7 +57,7 @@ struct ShaderProgram {
 
 struct AttributesStatic {
   float corner[2]; // location of corner relative to center, in world coords
-  float texcoord[2]; // texture u,v of this corner
+  float texcoord[2]; // texture s,t of this corner
 };
 
 struct AttributesDynamic {
@@ -89,7 +89,7 @@ RendererImpl::RendererImpl(SDL_Window* window_):
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
   context = SDL_GL_CreateContext(window);
-  if (context == nullptr) { SDLFAIL("SDL_GL_CreateContext"); }
+  if (context == nullptr) { FAIL("SDL_GL_CreateContext"); }
   
   glClearColor(1.0, 1.0, 1.0, 1.0);
   glEnable(GL_BLEND);
@@ -98,8 +98,10 @@ RendererImpl::RendererImpl(SDL_Window* window_):
   shader = std::unique_ptr<ShaderProgram>(new ShaderProgram);
   vbo = std::unique_ptr<VertexBuffer>(new VertexBuffer);
 
+  // textures.LoadFont("assets/share-tech-mono.ttf", 52.0);
+  textures.LoadImage("assets/red-blob.png");
   auto surface = textures.GetSurface();
-  if (surface == nullptr) { SDLFAIL("Loading red-blob.png"); }
+  if (surface == nullptr) { FAIL("Loading red-blob.png"); }
 
   glGenTextures(1, &texture_id);
   glBindTexture(GL_TEXTURE_2D, texture_id);
@@ -141,31 +143,45 @@ extern float rotation;
 namespace {
   static int FRAME = -1;
   
-  const int SIDE = 100;
+  const int SIDE = 10;
   const int NUM = SIDE * SIDE;
 
   std::vector<AttributesStatic> vertices_static;
   std::vector<AttributesDynamic> vertices_dynamic;
   std::vector<GLushort> indices;
-  static const float corner_vertex[4][2] = { { -0.5, -0.5 }, { 0.5, -0.5 }, { -0.5, 0.5 }, { 0.5, 0.5 } };
-  static const float texcoord_vertex[4][2] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } };
   static const GLushort corner_index[6] = { 0, 1, 2, 2, 1, 3 };
 
-  void FillVertexData() {
+  void FillVertexData(const Textures& textures) {
     static float t = 0.0;
     t += 0.01;
 
     float scale = 2.0 / SIDE;
     if (FRAME % 100 == 0) {
       vertices_static.resize(NUM * 4);
-      for (int i = 0; i < NUM * 4; i++) {
-        AttributesStatic& record = vertices_static[i];
-        record.corner[0] = corner_vertex[i % 4][0] * scale;
-        record.corner[1] = corner_vertex[i % 4][1] * scale;
-        record.texcoord[0] = texcoord_vertex[i % 4][0];
-        record.texcoord[1] = texcoord_vertex[i % 4][1];
+      for (int j = 0; j < NUM; j++) {
+        const SpriteLocation& loc = textures.GetLocation(0);
+        int i = j * 4;
+        vertices_static[i].corner[0] = loc.x0 * scale;
+        vertices_static[i].corner[1] = loc.y0 * scale;
+        vertices_static[i].texcoord[0] = loc.s0;
+        vertices_static[i].texcoord[1] = loc.t0;
+        i++;
+        vertices_static[i].corner[0] = loc.x1 * scale;
+        vertices_static[i].corner[1] = loc.y0 * scale;
+        vertices_static[i].texcoord[0] = loc.s1;
+        vertices_static[i].texcoord[1] = loc.t0;
+        i++;
+        vertices_static[i].corner[0] = loc.x0 * scale;
+        vertices_static[i].corner[1] = loc.y1 * scale;
+        vertices_static[i].texcoord[0] = loc.s0;
+        vertices_static[i].texcoord[1] = loc.t1;
+        i++;
+        vertices_static[i].corner[0] = loc.x1 * scale;
+        vertices_static[i].corner[1] = loc.y1 * scale;
+        vertices_static[i].texcoord[0] = loc.s1;
+        vertices_static[i].texcoord[1] = loc.t1;
       }
-    
+      
       indices.resize(NUM * 6);
       for (int i = 0; i < NUM * 6; i++) {
         int j = i / 6;
@@ -177,8 +193,8 @@ namespace {
     for (int i = 0; i < NUM * 4; i++) {
       AttributesDynamic& record = vertices_dynamic[i];
       int j = i / 4;
-      record.position[0] = (j % SIDE - 0.5*SIDE) * 2.0 / SIDE;
-      record.position[1] = (j / SIDE - 0.5*SIDE + 0.5*(j&1)) * 2.0 / SIDE;
+      record.position[0] = (0.5 + j % SIDE - 0.5*SIDE + ((j/SIDE)%2) * 0.5 - 0.25) * 2.0 / SIDE;
+      record.position[1] = (0.5 + j / SIDE - 0.5*SIDE) * 2.0 / SIDE;
       record.rotation = rotation + (j * 0.03 * t);
     }
   }
@@ -222,7 +238,7 @@ void Renderer::Render() {
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
-  FillVertexData();
+  FillVertexData(self->textures);
 
   if (FRAME % 100 == 0 || !self->context_initialized) {
     glBindBuffer(GL_ARRAY_BUFFER, self->vbo->sid);
@@ -332,7 +348,7 @@ GLchar fragment_shader[] =
 
 ShaderProgram::ShaderProgram() {
   id = glCreateProgram();
-  if (id == 0) { SDLFAIL("glCreateProgram"); }
+  if (id == 0) { FAIL("glCreateProgram"); }
 
   AttachShader(GL_VERTEX_SHADER, vertex_shader);
   AttachShader(GL_FRAGMENT_SHADER, fragment_shader);
@@ -346,7 +362,7 @@ ShaderProgram::ShaderProgram() {
     GLchar log[1024];
     glGetProgramInfoLog(id, 1024, nullptr, log);
     std::cerr << log << std::endl;
-    SDLFAIL("link shaders");
+    FAIL("link shaders");
   }
 
   loc_u_camera_position = glGetUniformLocation(id, "u_camera_position");
@@ -364,7 +380,7 @@ ShaderProgram::~ShaderProgram() {
 
 void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
   GLuint shader_id = glCreateShader(type);
-  if (shader_id == 0) { SDLFAIL("load shader"); }
+  if (shader_id == 0) { FAIL("load shader"); }
            
   glShaderSource(shader_id, 1, &source, nullptr);
   glCompileShader(shader_id);
@@ -377,7 +393,7 @@ void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
     GLchar log[1024];
     glGetShaderInfoLog(shader_id, 1024, nullptr, log);
     std::cerr << log << std::endl;
-    SDLFAIL("compile shader");
+    FAIL("compile shader");
   }
 
   glAttachShader(id, shader_id);
