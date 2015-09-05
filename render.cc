@@ -101,7 +101,6 @@ RendererImpl::RendererImpl(SDL_Window* window_):
   // textures.LoadFont("assets/share-tech-mono.ttf", 52.0);
   textures.LoadImage("assets/red-blob.png");
   auto surface = textures.GetSurface();
-  if (surface == nullptr) { FAIL("Loading red-blob.png"); }
 
   glGenTextures(1, &texture_id);
   glBindTexture(GL_TEXTURE_2D, texture_id);

@@ -22,6 +22,8 @@
 const int LOW_CHAR = 32; // space
 const int HIGH_CHAR = 126+1; // tilde
 
+// How many pixels to leave around each sprite
+const int PADDING = 1;
 
 /* For each sprite id, I want to keep its original surface
    and its current assignment in the texture atlas: x,y,w,h
@@ -92,7 +94,7 @@ void Textures::LoadFont(const char* filename, float ptsize) {
   stbtt_packedchar chardata[N];
   stbtt_pack_context packer;
   stbtt_PackBegin(&packer, self->rendered_font.data(),
-                  self->size, self->size, 0, 2, nullptr);
+                  self->size, self->size, 0, PADDING, nullptr);
   stbtt_PackSetOversampling(&packer, 1, 1);
   int r = stbtt_PackFontRange(&packer,
                               reinterpret_cast<unsigned char*>(font_buffer.data()),
@@ -127,6 +129,8 @@ void Textures::LoadFont(const char* filename, float ptsize) {
 }
 
 
+#include <iostream>
+
 /** If the surface hasn't been built, or if the set of sprites has
  * changed, build the surface, and return it. 
  */
@@ -142,14 +146,37 @@ SDL_Surface* Textures::GetSurface() {
        );
     if (self->atlas == nullptr) { FAIL("SDL_CreateRGBSurface"); }
 
-    // TODO: use texture packing library for images; right now it's hard coded to a single image
-    auto image = self->sources[0];
-    SDL_Rect rect; rect.x = 0; rect.y = 0; rect.w = image->w; rect.h = image->h;
-    if (SDL_BlitSurface(image, nullptr, self->atlas, &rect) < 0) { FAIL("SDL_BlitSurface"); }
-    self->mapping[0].s0 = 0.0;
-    self->mapping[0].s1 = 144.0/self->size;
-    self->mapping[0].t0 = 0.0;
-    self->mapping[0].t1 = 144.0/self->size;
+    std::vector<stbrp_rect> rects;
+    std::vector<stbrp_node> working_space;
+    stbrp_context context;
+
+    rects.resize(self->sources.size());
+    for (int i = 0; i < self->sources.size(); i++) {
+      rects[i].id = i;
+      rects[i].w = 2*PADDING + self->sources[i]->w;
+      rects[i].h = 2*PADDING + self->sources[i]->h;
+    }
+      
+    working_space.resize(self->size);
+    stbrp_init_target(&context, self->size, self->size,
+                      working_space.data(), working_space.size());
+    stbrp_pack_rects(&context, rects.data(), rects.size());
+
+    for (int i = 0; i < self->sources.size(); i++) {
+      if (!rects[i].was_packed) { FAIL("Could not fit all images"); }
+      
+      SDL_Rect rect;
+      rect.x = PADDING + rects[i].x; rect.y = PADDING + rects[i].y;
+      rect.w = self->sources[i]->w; rect.h = self->sources[i]->h;
+      if (SDL_BlitSurface(self->sources[i], nullptr, self->atlas, &rect) < 0) {
+        FAIL("SDL_BlitSurface");
+      }
+      
+      self->mapping[i].s0 = float(rect.x) / self->size;
+      self->mapping[i].s1 = float(rect.x + rect.w) / self->size;
+      self->mapping[i].t0 = float(rect.y) / self->size;
+      self->mapping[i].t1 = float(rect.y + rect.h) / self->size;
+    }
   }
 
   return self->atlas;
