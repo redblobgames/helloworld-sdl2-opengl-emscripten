@@ -8,6 +8,7 @@
 
 struct SDL_Window;
 struct RendererImpl;
+struct RenderLayerImpl;
 
 class Renderer {
 public:
@@ -19,5 +20,17 @@ public:
 private:
   std::unique_ptr<RendererImpl> self;
 };
+
+class RenderLayer {
+public:
+  RenderLayer(Renderer* renderer);
+  ~RenderLayer();
+  void Render();
+  void HandleResize();
+
+protected:
+  std::unique_ptr<RenderLayerImpl> self;
+};
+
 
 #endif

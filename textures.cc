@@ -43,7 +43,7 @@ struct TexturesImpl {
 
 Textures::Textures(): self(new TexturesImpl) {
   // TODO: figure out sizing later
-  self->size = 256;
+  self->size = 1024;
   self->atlas = nullptr;
 }
 

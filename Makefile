@@ -7,7 +7,7 @@
 # For native builds, $LOCALOUTPUT/ and assets/ are needed
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
-MODULES = main render textures
+MODULES = main render textures glwrappers
 ASSETS = assets/red-blob.png assets/share-tech-mono.ttf
 
 BUILDDIR = build

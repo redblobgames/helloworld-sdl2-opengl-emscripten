@@ -1,0 +1,89 @@
+// Copyright 2015 Red Blob Games <redblobgames@gmail.com>
+// License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
+
+#include "glwrappers.h"
+#include "common.h"
+
+#include <SDL2/SDL.h>
+
+#include <iostream>
+
+ShaderProgram::ShaderProgram(const char* vertex_shader, const char* fragment_shader) {
+  id = glCreateProgram();
+  if (id == 0) { FAIL("glCreateProgram"); }
+
+  AttachShader(GL_VERTEX_SHADER, vertex_shader);
+  AttachShader(GL_FRAGMENT_SHADER, fragment_shader);
+  glLinkProgram(id);
+  
+  GLint link_status;
+  glGetProgramiv(id, GL_LINK_STATUS, &link_status);
+  if (!link_status) {
+    GLint log_length;
+    glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_length);
+    GLchar log[1024];
+    glGetProgramInfoLog(id, 1024, nullptr, log);
+    std::cerr << log << std::endl;
+    FAIL("link shaders");
+  }
+}
+
+ShaderProgram::~ShaderProgram() {
+  glDeleteProgram(id);
+}
+
+void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
+  GLuint shader_id = glCreateShader(type);
+  if (shader_id == 0) { FAIL("load shader"); }
+           
+  glShaderSource(shader_id, 1, &source, nullptr);
+  glCompileShader(shader_id);
+
+  GLint compile_status;
+  glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compile_status);
+  if (!compile_status) {
+    GLint log_length;
+    glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &log_length);
+    GLchar log[1024];
+    glGetShaderInfoLog(shader_id, 1024, nullptr, log);
+    std::cerr << log << std::endl;
+    FAIL("compile shader");
+  }
+
+  glAttachShader(id, shader_id);
+  glDeleteShader(shader_id);
+  GLERRORS("AttachShader()");
+}
+
+
+Texture::Texture(SDL_Surface* surface) {
+  glGenTextures(1, &id);
+  glBindTexture(GL_TEXTURE_2D, id);
+  glTexImage2D(GL_TEXTURE_2D, 0,
+               GL_RGBA,
+               surface->w, surface->h,
+               0,
+               surface->format->BytesPerPixel == 1? GL_ALPHA
+               : surface->format->BytesPerPixel == 3? GL_RGB
+               : GL_RGBA /* TODO: check for other formats */,
+               GL_UNSIGNED_BYTE,
+               surface->pixels
+               );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  GLERRORS("Texture creation");
+}
+
+Texture::~Texture() {
+  glDeleteTextures(1, &id);
+}
+
+
+VertexBuffer::VertexBuffer() {
+  glGenBuffers(1, &id);
+}
+
+VertexBuffer::~VertexBuffer() {
+  glDeleteBuffers(1, &id);
+}
+
