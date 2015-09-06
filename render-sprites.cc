@@ -52,35 +52,32 @@ RenderSprites::~RenderSprites() {}
 
 // Shader program for drawing sprites
 
-GLchar vertex_shader[] =
-  "uniform vec2 u_camera_position;\n"
-  "uniform vec2 u_camera_scale;\n"
-  "attribute vec2 a_corner;\n"
-  "attribute vec2 a_texcoord;\n"
-  "attribute vec2 a_position;\n"
-  "attribute float a_rotation;\n"
-  "varying vec2 v_texcoord;\n"
-  "\n"
-  "void main() {\n"
-  "  mat2 rot = mat2(cos(a_rotation), -sin(a_rotation), sin(a_rotation), cos(a_rotation));\n"
-  "  vec2 local_coords = a_corner * rot;\n"
-  "  vec2 world_coords = local_coords + a_position;\n"
-  "  vec2 screen_coords = (world_coords - u_camera_position) * u_camera_scale;\n"
-  "  gl_Position = vec4(screen_coords, 0.0, 1.0);\n"
-  "  v_texcoord = a_texcoord;\n"
-  "}\n";
+GLchar vertex_shader[] = R"(
+  uniform vec2 u_camera_position;
+  uniform vec2 u_camera_scale;
+  attribute vec2 a_corner;
+  attribute vec2 a_texcoord;
+  attribute vec2 a_position;
+  attribute float a_rotation;
+  varying vec2 v_texcoord;
+  
+  void main() {
+    mat2 rot = mat2(cos(a_rotation), -sin(a_rotation), sin(a_rotation), cos(a_rotation));
+    vec2 local_coords = a_corner * rot;
+    vec2 world_coords = local_coords + a_position;
+    vec2 screen_coords = (world_coords - u_camera_position) * u_camera_scale;
+    gl_Position = vec4(screen_coords, 0.0, 1.0);
+    v_texcoord = a_texcoord;
+  }
+)";
 
-GLchar fragment_shader[] =
-#ifdef __EMSCRIPTEN__
-  // NOTE(amitp): WebGL requires precision hints but OpenGL 2.1 disallows them
-  "precision mediump float;\n"
-  "\n"
-#endif
-  "uniform sampler2D u_texture;\n"
-  "varying vec2 v_texcoord;\n"
-  "void main() {\n"
-  "  gl_FragColor = texture2D(u_texture, v_texcoord);\n"
-  "}\n";
+GLchar fragment_shader[] = R"(
+  uniform sampler2D u_texture;
+  varying vec2 v_texcoord;
+  void main() {
+    gl_FragColor = texture2D(u_texture, v_texcoord);
+  }
+)";
 
 
 RenderSpritesImpl::RenderSpritesImpl() {

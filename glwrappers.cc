@@ -28,6 +28,14 @@ ShaderProgram::ShaderProgram(const char* vertex_shader, const char* fragment_sha
   id = glCreateProgram();
   if (id == 0) { FAIL("glCreateProgram"); }
 
+#ifdef __EMSCRIPTEN__
+  // WebGL requires precision specifiers but OpenGL 2.1 disallows
+  // them, so I define the shader without it and then add it here.
+  std::string new_fragment_shader = "precision mediump float;\n";
+  new_fragment_shader += fragment_shader;
+  fragment_shader = new_fragment_shader.c_str();
+#endif
+  
   AttachShader(GL_VERTEX_SHADER, vertex_shader);
   AttachShader(GL_FRAGMENT_SHADER, fragment_shader);
   glLinkProgram(id);
