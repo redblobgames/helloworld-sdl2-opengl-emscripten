@@ -1,6 +1,10 @@
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
+/** Wrappers for SDL and GL objects that come in construct/destroy pairs,
+ * using C++ RAII.
+ */
+
 #ifndef GLWRAPPERS_H
 #define GLWRAPPERS_H
 
@@ -8,6 +12,7 @@
 // headers is different. This header file handles the
 // platform-specific paths.
 
+#include <SDL2/SDL.h>
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
@@ -17,9 +22,6 @@
 
 // Check for any OpenGL errors and print them
 void GLERRORS(const char* label);
-
-struct SDL_Surface;
-
 
 struct ShaderProgram {
   GLuint id;
@@ -44,5 +46,12 @@ struct VertexBuffer {
   ~VertexBuffer();
 };
 
-  
+
+struct GlContext {
+  SDL_GLContext id;
+  GlContext(SDL_Window* window);
+  ~GlContext();
+};
+
+
 #endif

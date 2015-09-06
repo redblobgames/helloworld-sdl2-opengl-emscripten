@@ -8,6 +8,24 @@
 
 #include <iostream>
 
+
+void GLERRORS(const char* label) {
+#ifndef __EMSCRIPTEN__
+  while (true) {
+    GLenum err = glGetError();
+    if (err == GL_NO_ERROR) { break; }
+    std::cerr << label << " glGetError returned " << err << std::endl;
+  }
+#endif
+}
+
+void FAIL(const char* label) {
+  GLERRORS(label);
+  std::cerr << label << " failed : " << SDL_GetError() << std::endl;
+  exit(EXIT_FAILURE);
+}
+
+
 ShaderProgram::ShaderProgram(const char* vertex_shader, const char* fragment_shader) {
   id = glCreateProgram();
   if (id == 0) { FAIL("glCreateProgram"); }
@@ -87,3 +105,12 @@ VertexBuffer::~VertexBuffer() {
   glDeleteBuffers(1, &id);
 }
 
+
+GlContext::GlContext(SDL_Window* window) {
+  id = SDL_GL_CreateContext(window);
+  if (id == nullptr) { FAIL("SDL_GL_CreateContext"); }
+}
+
+GlContext::~GlContext() {
+  SDL_GL_DeleteContext(id);
+}

@@ -16,16 +16,17 @@ public:
   ~Renderer();
   void Render();
   void HandleResize();
-  
+
+  static int FRAME;
 private:
   std::unique_ptr<RendererImpl> self;
 };
 
 class RenderLayer {
 public:
-  RenderLayer(Renderer* renderer);
+  RenderLayer();
   ~RenderLayer();
-  void Render();
+  void Render(SDL_Window* window, bool reset);
   void HandleResize();
 
 protected:
