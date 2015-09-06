@@ -4,8 +4,6 @@
 #include "glwrappers.h"
 #include "common.h"
 
-#include <SDL2/SDL.h>
-
 #include <iostream>
 
 

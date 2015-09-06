@@ -4,12 +4,22 @@
 #ifndef RENDER_SPRITES_H
 #define RENDER_SPRITES_H
 
-#include "render.h"
+#include <memory>
 
 struct SDL_Window;
 struct RenderSpritesImpl;
 
-class RenderSprites: public RenderLayer {
+
+class RenderSprites {
+public:
+  RenderSprites();
+  ~RenderSprites();
+  void Render(SDL_Window* window, bool reset);
+  void HandleResize();
+
+protected:
+  std::unique_ptr<RenderSpritesImpl> self;
 };
+
 
 #endif

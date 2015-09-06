@@ -2,8 +2,8 @@
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
 #include "render-sprites.h"
-#include "render.h"
-#include "textures.h"
+#include "window.h"
+#include "atlas.h"
 
 #include <SDL2/SDL.h>
 #include "glwrappers.h"
@@ -21,8 +21,8 @@ struct AttributesDynamic {
   float rotation; // rotation in radians
 };
 
-struct RenderLayerImpl {
-  Textures textures;
+struct RenderSpritesImpl {
+  Atlas atlas;
   std::unique_ptr<VertexBuffer> vbo_static;
   std::unique_ptr<VertexBuffer> vbo_dynamic;
   std::unique_ptr<VertexBuffer> vbo_index;
@@ -42,13 +42,13 @@ struct RenderLayerImpl {
   GLint loc_a_position;
   GLint loc_a_rotation;
 
-  RenderLayerImpl();
-  ~RenderLayerImpl();
+  RenderSpritesImpl();
+  ~RenderSpritesImpl();
 };
 
 
-RenderLayer::RenderLayer(): self(new RenderLayerImpl) {}
-RenderLayer::~RenderLayer() {}
+RenderSprites::RenderSprites(): self(new RenderSpritesImpl) {}
+RenderSprites::~RenderSprites() {}
 
 // Shader program for drawing sprites
 
@@ -83,7 +83,7 @@ GLchar fragment_shader[] =
   "}\n";
 
 
-RenderLayerImpl::RenderLayerImpl() {
+RenderSpritesImpl::RenderSpritesImpl() {
   shader = std::unique_ptr<ShaderProgram>(new ShaderProgram(vertex_shader, fragment_shader));
   vbo_static = std::unique_ptr<VertexBuffer>(new VertexBuffer);
   vbo_dynamic = std::unique_ptr<VertexBuffer>(new VertexBuffer);
@@ -97,12 +97,12 @@ RenderLayerImpl::RenderLayerImpl() {
   loc_a_position = glGetAttribLocation(shader->id, "a_position");
   loc_a_rotation = glGetAttribLocation(shader->id, "a_rotation");
 
-  // textures.LoadFont("assets/share-tech-mono.ttf", 52.0);
-  textures.LoadImage("assets/red-blob.png");
-  texture = std::unique_ptr<Texture>(new Texture(textures.GetSurface()));
+  // atlas.LoadFont("assets/share-tech-mono.ttf", 52.0);
+  atlas.LoadImage("assets/red-blob.png");
+  texture = std::unique_ptr<Texture>(new Texture(atlas.GetSurface()));
 }
 
-RenderLayerImpl::~RenderLayerImpl() {}
+RenderSpritesImpl::~RenderSpritesImpl() {}
 
 
 extern float rotation;
@@ -115,15 +115,15 @@ namespace {
   std::vector<GLushort> indices;
   static const GLushort corner_index[6] = { 0, 1, 2, 2, 1, 3 };
 
-  void FillVertexData(const Textures& textures) {
+  void FillVertexData(const Atlas& atlas) {
     static float t = 0.0;
     t += 0.01;
 
     float scale = 2.0 / SIDE;
-    if (Renderer::FRAME % 100 == 0) {
+    if (Window::FRAME % 100 == 0) {
       vertices_static.resize(NUM * 4);
       for (int j = 0; j < NUM; j++) {
-        SpriteLocation loc = textures.GetLocation(0);
+        SpriteLocation loc = atlas.GetLocation(0);
         // loc.s0 = 0; loc.t0 = 0; loc.s1 = 1; loc.t1 = 1;
         int i = j * 4;
         vertices_static[i].corner[0] = loc.x0 * scale;
@@ -166,7 +166,7 @@ namespace {
 }
 
 
-void RenderLayer::Render(SDL_Window* window, bool reset) {
+void RenderSprites::Render(SDL_Window* window, bool reset) {
   glUseProgram(self->shader->id);
   GLERRORS("useProgram");
 
@@ -201,9 +201,9 @@ void RenderLayer::Render(SDL_Window* window, bool reset) {
   // The data for the vertex shader will be in a vertex buffer
   // ("VBO"). I'm going to use a single vertex buffer for all the
   // parameters, and I'm going to fill it each frame.
-  FillVertexData(self->textures);
+  FillVertexData(self->atlas);
 
-  if (Renderer::FRAME % 100 == 0 || reset) {
+  if (Window::FRAME % 100 == 0 || reset) {
     // NOTE: the % 100 simulates the occasional needing to rebuild the buffers because the set of sprites changed
     glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static->id);
     glBufferData(GL_ARRAY_BUFFER, sizeof(AttributesStatic) * vertices_static.size(), vertices_static.data(), GL_DYNAMIC_DRAW);

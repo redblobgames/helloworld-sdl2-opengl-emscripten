@@ -1,7 +1,7 @@
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
-#include "textures.h"
+#include "atlas.h"
 #include "common.h"
 
 #include <SDL2/SDL.h>
@@ -32,7 +32,7 @@ const int PADDING = 1;
    and they're 8-bit instead of 32-bit anyway. Their x,y,w,h
    table will be populated differently. */
 
-struct TexturesImpl {
+struct AtlasImpl {
   int size;
   SDL_Surface* atlas;
   std::vector<unsigned char> rendered_font;
@@ -41,21 +41,21 @@ struct TexturesImpl {
 };
 
 
-Textures::Textures(): self(new TexturesImpl) {
+Atlas::Atlas(): self(new AtlasImpl) {
   // TODO: figure out sizing later
   self->size = 1024;
   self->atlas = nullptr;
 }
 
-Textures::~Textures() {}
+Atlas::~Atlas() {}
 
 
-const SpriteLocation& Textures::GetLocation(int id) const {
+const SpriteLocation& Atlas::GetLocation(int id) const {
   return self->mapping.at(id);
 }
 
 
-int Textures::LoadImage(const char* filename) {
+int Atlas::LoadImage(const char* filename) {
   // The previous atlas is no longer valid
   if (self->atlas) {
     if (!self->rendered_font.empty()) { FAIL("LoadImage after LoadFont"); }
@@ -79,7 +79,7 @@ int Textures::LoadImage(const char* filename) {
 }
 
 
-void Textures::LoadFont(const char* filename, float ptsize) {
+void Atlas::LoadFont(const char* filename, float ptsize) {
   // Load the font into memory
   std::vector<char> font_buffer;
   std::ifstream in(filename, std::ifstream::binary);
@@ -134,7 +134,7 @@ void Textures::LoadFont(const char* filename, float ptsize) {
 /** If the surface hasn't been built, or if the set of sprites has
  * changed, build the surface, and return it. 
  */
-SDL_Surface* Textures::GetSurface() {
+SDL_Surface* Atlas::GetSurface() {
   if (self->atlas == nullptr) {
     self->atlas = SDL_CreateRGBSurface
       (0, self->size, self->size, 32,

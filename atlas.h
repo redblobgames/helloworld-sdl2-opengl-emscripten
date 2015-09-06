@@ -1,13 +1,13 @@
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
-#ifndef TEXTURES_H
-#define TEXTURES_H
+#ifndef ATLAS_H
+#define ATLAS_H
 
 #include <memory>
 
 struct SDL_Surface;
-struct TexturesImpl;
+struct AtlasImpl;
 
 // World coordinates sized 1x1 for sprites and __x1 for fonts. 
 struct SpriteLocation {
@@ -16,12 +16,12 @@ struct SpriteLocation {
   float xadvance;       // Only for font glyphs
 };
 
-class Textures {
+class Atlas {
 public:
-  Textures();
-  ~Textures();
+  Atlas();
+  ~Atlas();
 
-  // Textures contain either images or a font.
+  // An Atlas contains either images or a font.
   int LoadImage(const char* filename);
   void LoadFont(const char* filename, float ptsize);
 
@@ -32,7 +32,7 @@ public:
   const SpriteLocation& GetLocation(int id) const;
   
 private:
-  std::unique_ptr<TexturesImpl> self;
+  std::unique_ptr<AtlasImpl> self;
 };
 
 #endif

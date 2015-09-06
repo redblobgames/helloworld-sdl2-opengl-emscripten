@@ -4,19 +4,15 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 
-#include "render.h"
+#include "window.h"
 #include "common.h"
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
 #endif
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
 
-
-std::unique_ptr<Renderer> renderer;
-SDL_Window* window;
+std::unique_ptr<Window> renderer;
 static bool main_loop_running = true;
 static bool main_loop_rendering = true;
 
@@ -82,16 +78,7 @@ int main() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) { FAIL("SDL_Init"); }
   SDL_GL_SetSwapInterval(1);
 
-  window = SDL_CreateWindow("Hello World",
-                            SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED,
-                            SCREEN_WIDTH,
-                            SCREEN_HEIGHT,
-                            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-                            );
-  if (window == nullptr) { FAIL("SDL_CreateWindow"); }
-  
-  renderer = std::unique_ptr<Renderer>(new Renderer(window));
+  renderer = std::unique_ptr<Window>(new Window(800, 600));
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.
@@ -102,7 +89,7 @@ int main() {
     SDL_Delay(16);
   }
 #endif
-  
-  SDL_DestroyWindow(window);
+
+  renderer = nullptr;
   SDL_Quit();
 }
