@@ -35,8 +35,9 @@ private:
 
 struct Texture {
   GLuint id;
-  Texture(SDL_Surface* surface);
+  Texture(SDL_Surface* surface = nullptr);
   ~Texture();
+  void CopyFrom(SDL_Surface* surface);
 };
 
 

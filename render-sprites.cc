@@ -12,13 +12,13 @@
 
 
 struct AttributesStatic {
-  float corner[2]; // location of corner relative to center, in world coords
-  float texcoord[2]; // texture s,t of this corner
+  GLfloat corner[2]; // location of corner relative to center, in world coords
+  GLfloat texcoord[2]; // texture s,t of this corner
 };
 
 struct AttributesDynamic {
-  float position[2]; // location of center in world coordinates
-  float rotation; // rotation in radians
+  GLfloat position[2]; // location of center in world coordinates
+  GLfloat rotation; // rotation in radians
 };
 
 struct RenderSpritesImpl {
@@ -51,8 +51,8 @@ RenderSprites::RenderSprites(): self(new RenderSpritesImpl) {}
 RenderSprites::~RenderSprites() {}
 
 // Shader program for drawing sprites
-
-GLchar vertex_shader[] = R"(
+namespace {
+  GLchar vertex_shader[] = R"(
   uniform vec2 u_camera_position;
   uniform vec2 u_camera_scale;
   attribute vec2 a_corner;
@@ -71,13 +71,14 @@ GLchar vertex_shader[] = R"(
   }
 )";
 
-GLchar fragment_shader[] = R"(
+  GLchar fragment_shader[] = R"(
   uniform sampler2D u_texture;
   varying vec2 v_texcoord;
   void main() {
     gl_FragColor = texture2D(u_texture, v_texcoord);
   }
 )";
+}
 
 
 RenderSpritesImpl::RenderSpritesImpl() {
@@ -165,6 +166,8 @@ namespace {
 
 void RenderSprites::Render(SDL_Window* window, bool reset) {
   glUseProgram(self->shader->id);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   GLERRORS("useProgram");
 
   // The uniforms are data that will be the same for all records. The

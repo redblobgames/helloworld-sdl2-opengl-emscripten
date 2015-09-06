@@ -82,6 +82,12 @@ void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
 
 Texture::Texture(SDL_Surface* surface) {
   glGenTextures(1, &id);
+  if (surface != nullptr) {
+    CopyFrom(surface);
+  }
+}
+
+void Texture::CopyFrom(SDL_Surface* surface) {
   glBindTexture(GL_TEXTURE_2D, id);
   glTexImage2D(GL_TEXTURE_2D, 0,
                GL_RGBA,

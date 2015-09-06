@@ -3,8 +3,10 @@
 
 #include "window.h"
 #include "render-sprites.h"
+#include "render-surface.h"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "glwrappers.h"
 
 #include <vector>
@@ -15,6 +17,7 @@ struct WindowImpl {
   bool context_initialized;
   GlContext context;
   std::unique_ptr<RenderSprites> layer;
+  std::unique_ptr<RenderSurface> layer2;
   
   WindowImpl(SDL_Window* window_);
   ~WindowImpl();
@@ -46,9 +49,8 @@ void Window::HandleResize() {
 
 void Window::Render() {
   glClear(GL_COLOR_BUFFER_BIT);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   self->layer->Render(self->window, !self->context_initialized);
+  self->layer2->Render(self->window, !self->context_initialized);
   self->context_initialized = true;
   SDL_GL_SwapWindow(self->window);
   FRAME++;
@@ -57,7 +59,9 @@ void Window::Render() {
 
 WindowImpl::WindowImpl(SDL_Window* window_)
   :window(window_), context_initialized(false),
-   context(window), layer(new RenderSprites)
+   context(window),
+   layer(new RenderSprites),
+   layer2(new RenderSurface(IMG_Load("assets/red-blob.png")))
 {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   glClearColor(1.0, 1.0, 1.0, 1.0);
