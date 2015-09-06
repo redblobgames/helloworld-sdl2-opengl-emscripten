@@ -4,6 +4,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include "render-layer.h"
 #include <memory>
 
 struct SDL_Window;
@@ -15,6 +16,7 @@ public:
   ~Window();
   void Render();
   void HandleResize();
+  void AddLayer(IRenderLayer* layer);
 
   static int FRAME;
 private:

@@ -1,11 +1,15 @@
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
-#include <iostream>
-#include <SDL2/SDL.h>
-
 #include "window.h"
+#include "render-sprites.h"
+#include "render-surface.h"
 #include "common.h"
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+#include <iostream>
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
@@ -79,6 +83,11 @@ int main() {
   SDL_GL_SetSwapInterval(1);
 
   renderer = std::unique_ptr<Window>(new Window(800, 600));
+
+  RenderSprites sprites;
+  RenderSurface overlay(IMG_Load("assets/red-blob.png"));
+  renderer->AddLayer(&sprites);
+  renderer->AddLayer(&overlay);
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.

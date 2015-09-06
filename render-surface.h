@@ -4,6 +4,7 @@
 #ifndef RENDER_SURFACE_H
 #define RENDER_SURFACE_H
 
+#include "render-layer.h"
 #include <memory>
 
 struct SDL_Window;
@@ -11,12 +12,11 @@ struct SDL_Surface;
 struct RenderSurfaceImpl;
 
 
-class RenderSurface {
+class RenderSurface: public IRenderLayer {
 public:
   RenderSurface(SDL_Surface* surface);
   ~RenderSurface();
-  void Render(SDL_Window* window, bool reset);
-  void HandleResize();
+  virtual void Render(SDL_Window* window, bool reset);
   
 protected:
   std::unique_ptr<RenderSurfaceImpl> self;
