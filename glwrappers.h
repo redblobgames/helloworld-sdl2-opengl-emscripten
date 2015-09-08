@@ -1,8 +1,8 @@
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
-/** Wrappers for SDL and GL objects that come in construct/destroy pairs,
- * using C++ RAII.
+/** Convenience functions, plus RAII wrappers for SDL and GL objects that
+ * come in construct/destroy pairs.
  */
 
 #ifndef GLWRAPPERS_H
@@ -22,6 +22,10 @@
 
 // Check for any OpenGL errors and print them
 void GLERRORS(const char* label);
+
+
+SDL_Surface* CreateRGBASurface(int width, int height);
+
 
 struct ShaderProgram {
   GLuint id;

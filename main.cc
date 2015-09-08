@@ -1,13 +1,14 @@
 // Copyright 2015 Red Blob Games <redblobgames@gmail.com>
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
+#include "common.h"
+#include "glwrappers.h"
 #include "window.h"
 #include "render-sprites.h"
 #include "render-surface.h"
-#include "common.h"
+#include "font.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 #include <iostream>
 
@@ -84,10 +85,22 @@ int main() {
 
   renderer = std::unique_ptr<Window>(new Window(800, 600));
 
-  RenderSprites sprites;
-  RenderSurface overlay(IMG_Load("assets/red-blob.png"));
-  renderer->AddLayer(&sprites);
-  renderer->AddLayer(&overlay);
+  Font font("assets/share-tech-mono.ttf", 32);
+
+  SDL_Surface* overlay_surface = CreateRGBASurface(512, 512);
+  SDL_Rect fillarea;
+  fillarea.x = 0;
+  fillarea.y = 0;
+  fillarea.w = overlay_surface->w;
+  fillarea.h = 24;
+  SDL_FillRect(overlay_surface, &fillarea, SDL_MapRGB(overlay_surface->format, 0, 32, 0));
+
+  font.Draw(overlay_surface, 1, 21, "Hello");
+
+  std::unique_ptr<RenderSprites> sprites(new RenderSprites);
+  std::unique_ptr<RenderSurface> overlay(new RenderSurface(overlay_surface));
+  renderer->AddLayer(sprites.get());
+  renderer->AddLayer(overlay.get());
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.

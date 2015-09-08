@@ -24,6 +24,20 @@ void FAIL(const char* label) {
 }
 
 
+SDL_Surface* CreateRGBASurface(int width, int height) {
+  SDL_Surface* surface = SDL_CreateRGBSurface
+    (0, width, height, 32,
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+     0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+#else
+     0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+#endif
+     );
+  if (surface == nullptr) { FAIL("SDL_CreateRGBSurface"); }
+  return surface;
+}
+
+
 ShaderProgram::ShaderProgram(const char* vertex_shader, const char* fragment_shader) {
   id = glCreateProgram();
   if (id == 0) { FAIL("glCreateProgram"); }

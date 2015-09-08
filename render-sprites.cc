@@ -167,7 +167,7 @@ namespace {
 void RenderSprites::Render(SDL_Window* window, bool reset) {
   glUseProgram(self->shader->id);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   GLERRORS("useProgram");
 
   // The uniforms are data that will be the same for all records. The

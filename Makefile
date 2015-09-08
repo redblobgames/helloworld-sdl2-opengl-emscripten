@@ -7,7 +7,7 @@
 # For native builds, $LOCALOUTPUT/ and assets/ are needed
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
-MODULES = main glwrappers window atlas render-sprites render-surface
+MODULES = main glwrappers window atlas font render-sprites render-surface
 ASSETS = assets/red-blob.png assets/share-tech-mono.ttf
 
 BUILDDIR = build

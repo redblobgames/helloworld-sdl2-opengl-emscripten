@@ -42,9 +42,12 @@ void Window::AddLayer(IRenderLayer* layer) {
 void Window::HandleResize() {
   // This is the easiest way to handle resize but it'd be better not
   // to regenerate the texture.
+#ifndef __EMSCRIPTEN__
+  // TODO: implement resizing properly
   SDL_Window* window = self->window;
   self = nullptr;
   self = std::unique_ptr<WindowImpl>(new WindowImpl(window));
+#endif
 }
 
 
