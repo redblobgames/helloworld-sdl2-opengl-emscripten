@@ -33,10 +33,7 @@ Window::Window(int width, int height)
   HandleResize();
 }
 
-Window::~Window() {
-  // TODO(amitp): can't call this because 'self' has been destroyed
-  // SDL_DestroyWindow(self->window);
-}
+Window::~Window() {}
 
 
 void Window::AddLayer(IRenderLayer* layer) {
@@ -69,4 +66,6 @@ WindowImpl::WindowImpl(SDL_Window* window_)
   glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
-WindowImpl::~WindowImpl() {}
+WindowImpl::~WindowImpl() {
+  SDL_DestroyWindow(window);
+}
