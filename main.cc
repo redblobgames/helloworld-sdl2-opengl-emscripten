@@ -17,7 +17,7 @@
 #endif
 
 
-std::unique_ptr<Window> renderer;
+std::unique_ptr<Window> window;
 static bool main_loop_running = true;
 static bool main_loop_rendering = true;
 
@@ -56,7 +56,7 @@ void main_loop() {
         break;
       }
       case SDL_WINDOWEVENT_SIZE_CHANGED: {
-        renderer->HandleResize();
+        window->HandleResize();
         break;
       }
       }
@@ -74,7 +74,7 @@ void main_loop() {
   if (pressed[SDL_SCANCODE_D]) { rotation += 0.05; }
   
   if (main_loop_rendering) {
-    renderer->Render();
+    window->Render();
   }
 }
 
@@ -83,24 +83,24 @@ int main() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) { FAIL("SDL_Init"); }
   SDL_GL_SetSwapInterval(1);
 
-  renderer = std::unique_ptr<Window>(new Window(800, 600));
+  window = std::unique_ptr<Window>(new Window(800, 600));
 
   Font font("assets/share-tech-mono.ttf", 32);
 
-  SDL_Surface* overlay_surface = CreateRGBASurface(800, 600);
+  SDL_Surface* overlay_surface = CreateRGBASurface(window->width, window->height);
   SDL_Rect fillarea;
   fillarea.x = 0;
   fillarea.y = 0;
   fillarea.w = overlay_surface->w;
   fillarea.h = 24;
-  SDL_FillRect(overlay_surface, &fillarea, SDL_MapRGBA(overlay_surface->format, 0, 32, 0, 192));
+  SDL_FillRect(overlay_surface, &fillarea, SDL_MapRGBA(overlay_surface->format, 64, 32, 0, 192));
 
   font.Draw(overlay_surface, 1, 21, "Hello");
 
   std::unique_ptr<RenderSprites> sprites(new RenderSprites);
   std::unique_ptr<RenderSurface> overlay(new RenderSurface(overlay_surface));
-  renderer->AddLayer(sprites.get());
-  renderer->AddLayer(overlay.get());
+  window->AddLayer(sprites.get());
+  window->AddLayer(overlay.get());
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.
@@ -112,6 +112,8 @@ int main() {
   }
 #endif
 
-  renderer = nullptr;
+  overlay = nullptr;
+  sprites = nullptr;
+  window = nullptr;
   SDL_Quit();
 }

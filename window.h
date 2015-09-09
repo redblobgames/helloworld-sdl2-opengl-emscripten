@@ -19,6 +19,7 @@ public:
   void AddLayer(IRenderLayer* layer);
 
   static int FRAME;
+  int width, height;
 private:
   std::unique_ptr<WindowImpl> self;
 };

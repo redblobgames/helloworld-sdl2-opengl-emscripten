@@ -21,8 +21,9 @@ struct WindowImpl {
 
 int Window::FRAME = 0;
 
-Window::Window(int width, int height)
-  :self(new WindowImpl(SDL_CreateWindow("Skeleton",
+Window::Window(int width_, int height_)
+  :width(width_), height(height_),
+   self(new WindowImpl(SDL_CreateWindow("Skeleton",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             width,
@@ -42,9 +43,8 @@ void Window::AddLayer(IRenderLayer* layer) {
 
 void Window::HandleResize() {
   self->context_initialized = false;
-  int w, h;
-  SDL_GL_GetDrawableSize(self->window, &w, &h);
-  glViewport(0, 0, w, h);
+  SDL_GL_GetDrawableSize(self->window, &width, &height);
+  glViewport(0, 0, width, height);
 }
 
 
