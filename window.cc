@@ -20,6 +20,7 @@ struct WindowImpl {
 };
 
 int Window::FRAME = 0;
+
 Window::Window(int width, int height)
   :self(new WindowImpl(SDL_CreateWindow("Skeleton",
                             SDL_WINDOWPOS_UNDEFINED,
@@ -27,7 +28,11 @@ Window::Window(int width, int height)
                             width,
                             height,
                             SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-                           ))) {}
+                           )))
+{
+  HandleResize();
+}
+
 Window::~Window() {
   // TODO(amitp): can't call this because 'self' has been destroyed
   // SDL_DestroyWindow(self->window);
@@ -38,16 +43,11 @@ void Window::AddLayer(IRenderLayer* layer) {
   self->layers.push_back(layer);
 }
 
-
 void Window::HandleResize() {
-  // This is the easiest way to handle resize but it'd be better not
-  // to regenerate the texture.
-#ifndef __EMSCRIPTEN__
-  // TODO: implement resizing properly
-  SDL_Window* window = self->window;
-  self = nullptr;
-  self = std::unique_ptr<WindowImpl>(new WindowImpl(window));
-#endif
+  self->context_initialized = false;
+  int w, h;
+  SDL_GL_GetDrawableSize(self->window, &w, &h);
+  glViewport(0, 0, w, h);
 }
 
 
