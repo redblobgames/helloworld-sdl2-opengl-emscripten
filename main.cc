@@ -87,7 +87,7 @@ int main() {
 
   Font font("assets/share-tech-mono.ttf", 32);
 
-  SDL_Surface* overlay_surface = CreateRGBASurface(512, 512);
+  SDL_Surface* overlay_surface = CreateRGBASurface(800, 600);
   SDL_Rect fillarea;
   fillarea.x = 0;
   fillarea.y = 0;

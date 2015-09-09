@@ -103,6 +103,13 @@ Texture::Texture(SDL_Surface* surface) {
 
 void Texture::CopyFrom(SDL_Surface* surface) {
   glBindTexture(GL_TEXTURE_2D, id);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // NOTE: these parameters will allow non-power-of-two texture sizes
+  // in WebGL, which we want to use for underlay and overlay images.
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  
   glTexImage2D(GL_TEXTURE_2D, 0,
                GL_RGBA,
                surface->w, surface->h,
@@ -113,8 +120,6 @@ void Texture::CopyFrom(SDL_Surface* surface) {
                GL_UNSIGNED_BYTE,
                surface->pixels
                );
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   GLERRORS("Texture creation");
 }
 
