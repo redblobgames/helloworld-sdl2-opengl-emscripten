@@ -93,7 +93,7 @@ int main() {
   fillarea.y = 0;
   fillarea.w = overlay_surface->w;
   fillarea.h = 24;
-  SDL_FillRect(overlay_surface, &fillarea, SDL_MapRGB(overlay_surface->format, 0, 32, 0));
+  SDL_FillRect(overlay_surface, &fillarea, SDL_MapRGBA(overlay_surface->format, 0, 32, 0, 192));
 
   font.Draw(overlay_surface, 1, 21, "Hello");
 

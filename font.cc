@@ -29,8 +29,7 @@ const int PADDING = 1;
    surface that stores it, as well as the position of the baseline and
    the x-advance width. */
 struct FontCharacter {
-  // TODO: reuse SDL_Rect here
-  int x, y, w, h; // source region of the surface
+  SDL_Rect region;
   int xadvance;   // how much x increases after drawing
   int ybaseline;  // how far down into the region the baseline is
 };
@@ -42,10 +41,6 @@ struct FontImpl {
 };
 
 
-// TODO: we don't need rect packing anymore because I can make a very
-// wide SDL_Surface
-const int SIZE = 512;
-
 Font::Font(const char* filename, float ptsize): self(new FontImpl) {
   // Load the font into memory
   std::vector<char> font_buffer;
@@ -55,15 +50,29 @@ Font::Font(const char* filename, float ptsize): self(new FontImpl) {
   in.seekg(0, std::ios_base::beg);
   in.read(font_buffer.data(), font_buffer.size());
 
-  // Render the font into a bitmap
+  // Use font metrics to determine how big I need to make the bitmap
+  int width = 0, height = ceil(ptsize);
+  stbtt_fontinfo font;
+  stbtt_InitFont(&font, reinterpret_cast<unsigned char*>(font_buffer.data()), 0);
+  for (char c = LOW_CHAR; c < HIGH_CHAR; c++) {
+    int ix0, iy0, ix1, iy1;
+    stbtt_GetCodepointBitmapBox(&font, c, 1, 1, &ix0, &iy0, &ix1, &iy1);
+    width += ceil((ix1 - ix0) * ptsize / 1000.0);
+  }
+  
+  // Render the font into the bitmap
+  // TODO: stbtt_GetCodepointBitmap might be a simpler way to get
+  // the rendered glyph. I don't need the rectangle packer, and I
+  // already have the font metrics, and I'm converting from one-byte
+  // to four-byte format afterwards.
   std::vector<unsigned char> rendered_font_grayscale;
-  rendered_font_grayscale.resize(SIZE * SIZE);
+  rendered_font_grayscale.resize(width * height);
   
   int N = HIGH_CHAR - LOW_CHAR;
   stbtt_packedchar chardata[N];
   stbtt_pack_context packer;
   stbtt_PackBegin(&packer, rendered_font_grayscale.data(),
-                  SIZE, SIZE, 0, PADDING, nullptr);
+                  width, height, 0, PADDING, nullptr);
   stbtt_PackSetOversampling(&packer, 1, 1);
   int r = stbtt_PackFontRange(&packer,
                               reinterpret_cast<unsigned char*>(font_buffer.data()),
@@ -77,18 +86,18 @@ Font::Font(const char* filename, float ptsize): self(new FontImpl) {
     auto& M = self->mapping[c];
     float x = 0.0, y = 0.0;
     stbtt_aligned_quad q;
-    stbtt_GetPackedQuad(chardata, SIZE, SIZE, c-LOW_CHAR,
+    stbtt_GetPackedQuad(chardata, width, height, c-LOW_CHAR,
                         &x, &y, &q, 0);
-    M.x = q.s0 * SIZE;
-    M.y = q.t0 * SIZE;
-    M.w = (q.s1 - q.s0) * SIZE;
-    M.h = (q.t1 - q.t0) * SIZE;
+    M.region.x = q.s0 * width;
+    M.region.y = q.t0 * height;
+    M.region.w = (q.s1 - q.s0) * width;
+    M.region.h = (q.t1 - q.t0) * height;
     M.xadvance = x;
     M.ybaseline = -q.y0;
   }
 
   // Copy the grayscale bitmap into RGBA
-  self->rendered_font.resize(SIZE * SIZE * 4);
+  self->rendered_font.resize(width * height * 4);
   for (int i = 0; i < rendered_font_grayscale.size(); i++) {
     self->rendered_font[i*4    ] = 255;
     self->rendered_font[i*4 + 1] = 255;
@@ -97,14 +106,14 @@ Font::Font(const char* filename, float ptsize): self(new FontImpl) {
   }
   
   self->surface = SDL_CreateRGBSurfaceFrom(self->rendered_font.data(),
-                                         SIZE, SIZE,
-                                         32, SIZE*4,
+                                           width, height,
+                                           32, width*4,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-                                         0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+                                           0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #else
-                                         0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+                                           0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #endif
-                                         );
+                                           );
 }
 
 
@@ -114,17 +123,13 @@ Font::~Font() {}
 void Font::Draw(SDL_Surface* surface, int x, int y, const char* text) const {
   for (const char* s = text; *s != '\0'; s++) {
     FontCharacter loc = self->mapping[*s];
-    SDL_Rect src, dst;
-    src.x = loc.x;
-    src.y = loc.y;
-    src.w = loc.w;
-    src.h = loc.h;
-    dst.x = x;
-    dst.y = y - loc.ybaseline;
+    SDL_Rect dest;
+    dest.x = x;
+    dest.y = y - loc.ybaseline;
     x += loc.xadvance;
-    if (SDL_BlitSurface(self->surface, &src, surface, &dst) < 0) {
+      
+    if (SDL_BlitSurface(self->surface, &loc.region, surface, &dest) < 0) {
       FAIL("Blit character");
     }
   }
-
 }
