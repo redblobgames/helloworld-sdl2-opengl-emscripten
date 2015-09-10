@@ -118,7 +118,7 @@ int main() {
   sprite_layer = std::unique_ptr<RenderSprites>(new RenderSprites);
   std::unique_ptr<RenderSurface> overlay_layer(new RenderSurface(overlay_surface));
   window->AddLayer(sprite_layer.get());
-  window->AddLayer(overlay_layer.get());
+  // window->AddLayer(overlay_layer.get());
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.
