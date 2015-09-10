@@ -23,9 +23,16 @@ struct AttributesDynamic {
 
 struct RenderSpritesImpl {
   Atlas atlas;
+  
+  std::vector<Sprite> sprites;
+  std::vector<AttributesStatic> vertices_static;
+  std::vector<AttributesDynamic> vertices_dynamic;
+  std::vector<GLushort> indices;
+  
   std::unique_ptr<VertexBuffer> vbo_static;
   std::unique_ptr<VertexBuffer> vbo_dynamic;
   std::unique_ptr<VertexBuffer> vbo_index;
+  
   std::unique_ptr<ShaderProgram> shader;
   std::unique_ptr<Texture> texture;
   
@@ -105,65 +112,62 @@ RenderSpritesImpl::~RenderSpritesImpl() {}
 
 extern float rotation;
 namespace {
-  const int SIDE = 40;
-  const int NUM = SIDE * SIDE;
-
-  std::vector<AttributesStatic> vertices_static;
-  std::vector<AttributesDynamic> vertices_dynamic;
-  std::vector<GLushort> indices;
   static const GLushort corner_index[6] = { 0, 1, 2, 2, 1, 3 };
-
-  void FillVertexData(const Atlas& atlas) {
-    static float t = 0.0;
-    t += 0.01;
-
-    float scale = 2.0 / SIDE;
-    if (Window::FRAME % 100 == 0) {
-      vertices_static.resize(NUM * 4);
-      for (int j = 0; j < NUM; j++) {
-        SpriteLocation loc = atlas.GetLocation(0);
-        // loc.s0 = 0; loc.t0 = 0; loc.s1 = 1; loc.t1 = 1;
-        int i = j * 4;
-        vertices_static[i].corner[0] = loc.x0 * scale;
-        vertices_static[i].corner[1] = loc.y0 * scale;
-        vertices_static[i].texcoord[0] = loc.s0;
-        vertices_static[i].texcoord[1] = loc.t0;
-        i++;
-        vertices_static[i].corner[0] = loc.x1 * scale;
-        vertices_static[i].corner[1] = loc.y0 * scale;
-        vertices_static[i].texcoord[0] = loc.s1;
-        vertices_static[i].texcoord[1] = loc.t0;
-        i++;
-        vertices_static[i].corner[0] = loc.x0 * scale;
-        vertices_static[i].corner[1] = loc.y1 * scale;
-        vertices_static[i].texcoord[0] = loc.s0;
-        vertices_static[i].texcoord[1] = loc.t1;
-        i++;
-        vertices_static[i].corner[0] = loc.x1 * scale;
-        vertices_static[i].corner[1] = loc.y1 * scale;
-        vertices_static[i].texcoord[0] = loc.s1;
-        vertices_static[i].texcoord[1] = loc.t1;
-      }
-
-      indices.resize(NUM * 6);
-      for (int i = 0; i < NUM * 6; i++) {
-        int j = i / 6;
-        indices[i] = j * 4 + corner_index[i % 6];
-      }
-    }
-    
-    vertices_dynamic.resize(NUM * 4);
-    for (int i = 0; i < NUM * 4; i++) {
-      AttributesDynamic& record = vertices_dynamic[i];
-      int j = i / 4;
-      record.position[0] = (0.5 + j % SIDE - 0.5*SIDE + ((j/SIDE)%2) * 0.5 - 0.25) * 2.0 / SIDE;
-      record.position[1] = (0.5 + j / SIDE - 0.5*SIDE) * 2.0 / SIDE;
-      record.rotation = rotation + (j * 0.03 * t);
-    }
-  }
 }
 
 
+void RenderSprites::SetSprites(const std::vector<Sprite>& sprites) {
+  auto& vertices_static = self->vertices_static;
+  auto& vertices_dynamic = self->vertices_dynamic;
+  auto& indices = self->indices;
+  
+  static float t = 0.0;
+  t += 0.01;
+
+  int N = sprites.size();
+  vertices_static.resize(N * 4);
+  for (int j = 0; j < N; j++) {
+    const Sprite& S = sprites[j];
+    SpriteLocation loc = self->atlas.GetLocation(S.image_id);
+    int i = j * 4;
+    vertices_static[i].corner[0] = loc.x0 * S.scale;
+    vertices_static[i].corner[1] = loc.y0 * S.scale;
+    vertices_static[i].texcoord[0] = loc.s0;
+    vertices_static[i].texcoord[1] = loc.t0;
+    i++;
+    vertices_static[i].corner[0] = loc.x1 * S.scale;
+    vertices_static[i].corner[1] = loc.y0 * S.scale;
+    vertices_static[i].texcoord[0] = loc.s1;
+    vertices_static[i].texcoord[1] = loc.t0;
+    i++;
+    vertices_static[i].corner[0] = loc.x0 * S.scale;
+    vertices_static[i].corner[1] = loc.y1 * S.scale;
+    vertices_static[i].texcoord[0] = loc.s0;
+    vertices_static[i].texcoord[1] = loc.t1;
+    i++;
+    vertices_static[i].corner[0] = loc.x1 * S.scale;
+    vertices_static[i].corner[1] = loc.y1 * S.scale;
+    vertices_static[i].texcoord[0] = loc.s1;
+    vertices_static[i].texcoord[1] = loc.t1;
+  }
+    
+  indices.resize(N * 6);
+  for (int i = 0; i < N * 6; i++) {
+    int j = i / 6;
+    indices[i] = j * 4 + corner_index[i % 6];
+  }
+    
+  vertices_dynamic.resize(N * 4);
+  for (int i = 0; i < N * 4; i++) {
+    AttributesDynamic& record = vertices_dynamic[i];
+    int j = i / 4;
+    record.position[0] = sprites[j].x;
+    record.position[1] = sprites[j].y;
+    record.rotation = sprites[j].rotation_degrees * M_PI / 180.0;
+  }
+}
+
+  
 void RenderSprites::Render(SDL_Window* window, bool reset) {
   glUseProgram(self->shader->id);
   glEnable(GL_BLEND);
@@ -198,29 +202,29 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   glUniform1i(self->loc_u_texture, 0);
   // It might be ok to hard-code the register number inside the shader.
   
-  // The data for the vertex shader will be in a vertex buffer
-  // ("VBO"). I'm going to use a single vertex buffer for all the
-  // parameters, and I'm going to fill it each frame.
-  FillVertexData(self->atlas);
-
   if (Window::FRAME % 100 == 0 || reset) {
     // NOTE: the % 100 simulates the occasional needing to rebuild the buffers because the set of sprites changed
     glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static->id);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(AttributesStatic) * vertices_static.size(), vertices_static.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,
+                 sizeof(AttributesStatic) * self->vertices_static.size(),
+                 self->vertices_static.data(),
+                 GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index->id);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 sizeof(GLushort) * self->indices.size(),
+                 self->indices.data(),
+                 GL_DYNAMIC_DRAW);
   }
   
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic->id);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(AttributesDynamic) * vertices_dynamic.size(), vertices_dynamic.data(), GL_STREAM_DRAW);
+  glBufferData(GL_ARRAY_BUFFER,
+               sizeof(AttributesDynamic) * self->vertices_dynamic.size(),
+               self->vertices_dynamic.data(),
+               GL_STREAM_DRAW);
   
   // Tell the shader program where to find each of the input variables
-  // ("attributes") in its vertex shader input. They're all coming
-  // from the same vertex buffer, but they're different slices of that
-  // data. The API is flexible enough to allow us to have a start
-  // position and stride within the vertex buffer. This allows us to
-  // bind the position and rotation inside the struct.
+  // ("attributes") in its vertex shader input.
   glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static->id);
   glVertexAttribPointer(self->loc_a_corner,
                         2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
@@ -247,7 +251,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   glEnableVertexAttribArray(self->loc_a_texcoord);
   glEnableVertexAttribArray(self->loc_a_position);
   glEnableVertexAttribArray(self->loc_a_rotation);
-  glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
+  glDrawElements(GL_TRIANGLES, self->indices.size(), GL_UNSIGNED_SHORT, 0);
   glDisableVertexAttribArray(self->loc_a_rotation);
   glDisableVertexAttribArray(self->loc_a_position);
   glDisableVertexAttribArray(self->loc_a_texcoord);

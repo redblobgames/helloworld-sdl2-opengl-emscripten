@@ -18,6 +18,7 @@
 
 
 std::unique_ptr<Window> window;
+std::unique_ptr<RenderSprites> sprite_layer;
 static bool main_loop_running = true;
 static bool main_loop_rendering = true;
 
@@ -74,6 +75,23 @@ void main_loop() {
   if (pressed[SDL_SCANCODE_D]) { rotation += 0.05; }
   
   if (main_loop_rendering) {
+    static float t = 0.0;
+    t += 0.01;
+
+    std::vector<Sprite> s;
+    int SIDE = 40;
+    int NUM = SIDE * SIDE;
+    for (int j = 0; j < NUM; j++) {
+      s.emplace_back();
+      s[j].image_id = 0;
+      s[j].x = (0.5 + j % SIDE - 0.5*SIDE + ((j/SIDE)%2) * 0.5 - 0.25) * 2.0 / SIDE;
+      s[j].y = (0.5 + j / SIDE - 0.5*SIDE) * 2.0 / SIDE;
+      s[j].scale = 2.0 / SIDE;
+      s[j].rotation_degrees = 180/M_PI * (rotation + (j * 0.03 * t));
+    }
+    
+    sprite_layer->SetSprites(s);
+    
     window->Render();
   }
 }
@@ -97,10 +115,10 @@ int main() {
 
   font.Draw(overlay_surface, 1, 21, "Hello");
 
-  std::unique_ptr<RenderSprites> sprites(new RenderSprites);
-  std::unique_ptr<RenderSurface> overlay(new RenderSurface(overlay_surface));
-  window->AddLayer(sprites.get());
-  window->AddLayer(overlay.get());
+  sprite_layer = std::unique_ptr<RenderSprites>(new RenderSprites);
+  std::unique_ptr<RenderSurface> overlay_layer(new RenderSurface(overlay_surface));
+  window->AddLayer(sprite_layer.get());
+  window->AddLayer(overlay_layer.get());
 
 #ifdef EMSCRIPTEN
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.
@@ -112,8 +130,8 @@ int main() {
   }
 #endif
 
-  overlay = nullptr;
-  sprites = nullptr;
+  overlay_layer = nullptr;
+  sprite_layer = nullptr;
   window = nullptr;
   SDL_Quit();
 }

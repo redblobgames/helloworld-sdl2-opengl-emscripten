@@ -35,10 +35,10 @@ $(LOCALOUTPUT)/main: $(MODULES:%=$(BUILDDIR)/%.o) Makefile
 	$(CXX) $(LOCALFLAGS) $(filter %.o,$^) $(LOCALLIBS) -o $@
 
 $(EMXXOUTPUT)/index.html: emscripten-shell.html $(EMXXOUTPUT)/main.js
-	@mkdir -p $(dir $@)
 	cp emscripten-shell.html $(dir $@)index.html
 
 $(EMXXOUTPUT)/main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
+	@mkdir -p $(dir $@)
 	$(EMXX) $(EMXXFLAGS) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
 
 $(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o Makefile
