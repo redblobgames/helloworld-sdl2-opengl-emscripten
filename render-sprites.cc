@@ -251,6 +251,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   glEnableVertexAttribArray(self->loc_a_texcoord);
   glEnableVertexAttribArray(self->loc_a_position);
   glEnableVertexAttribArray(self->loc_a_rotation);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index->id);
   glDrawElements(GL_TRIANGLES, self->indices.size(), GL_UNSIGNED_SHORT, 0);
   glDisableVertexAttribArray(self->loc_a_rotation);
   glDisableVertexAttribArray(self->loc_a_position);
