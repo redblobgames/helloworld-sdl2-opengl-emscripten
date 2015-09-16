@@ -2,28 +2,19 @@
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
 #include "font.h"
-#include "glwrappers.h"
 #include "common.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 #include <fstream>
 #include <vector>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_rect_pack.h"
 #include "stb/stb_truetype.h"
-#pragma clang diagnostic pop
 
 // This is the ascii font range (half-open interval) I support:
 const int LOW_CHAR = 32; // space
 const int HIGH_CHAR = 126+1; // tilde
-
-// How many pixels to leave around each sprite
-const int PADDING = 1;
 
 /* For each character in the font, I maintain the region of the
    surface that stores it, as well as the position of the baseline and
@@ -41,7 +32,7 @@ struct FontImpl {
 };
 
 
-Font::Font(const char* filename, float ptsize): self(new FontImpl) {
+Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new FontImpl) {
   // Load the font into memory
   std::vector<char> font_buffer;
   std::ifstream in(filename, std::ifstream::binary);
@@ -57,45 +48,38 @@ Font::Font(const char* filename, float ptsize): self(new FontImpl) {
   for (char c = LOW_CHAR; c < HIGH_CHAR; c++) {
     int ix0, iy0, ix1, iy1;
     stbtt_GetCodepointBitmapBox(&font, c, 1, 1, &ix0, &iy0, &ix1, &iy1);
-    width += ceil((ix1 - ix0) * ptsize / 1000.0);
+    // NOTE(amitp): I'm not 100% convinced this is always enough space
+    width += 1 + ceil(ix1 * ptsize / 1000.0) - floor(ix0 * ptsize / 1000.0);
   }
+
+  // HACK(amitp): Some fonts seem to need a little more space here,
+  // for reasons I don't understand. Examples: Ubuntu-C, NanumGothicCoding
+  height += 5;
   
   // Render the font into the bitmap
-  // TODO: stbtt_GetCodepointBitmap might be a simpler way to get
-  // the rendered glyph. I don't need the rectangle packer, and I
-  // already have the font metrics, and I'm converting from one-byte
-  // to four-byte format afterwards.
   std::vector<unsigned char> rendered_font_grayscale;
   rendered_font_grayscale.resize(width * height);
   
   int N = HIGH_CHAR - LOW_CHAR;
-  stbtt_packedchar chardata[N];
-  stbtt_pack_context packer;
-  stbtt_PackBegin(&packer, rendered_font_grayscale.data(),
-                  width, height, 0, PADDING, nullptr);
-  stbtt_PackSetOversampling(&packer, 1, 1);
-  int r = stbtt_PackFontRange(&packer,
-                              reinterpret_cast<unsigned char*>(font_buffer.data()),
-                              0, ptsize, LOW_CHAR, N, chardata);
-  if (r == 0) { FAIL("Font unable to fit"); }
-  stbtt_PackEnd(&packer);
-
-  // Store the character data as separate sprites
+  stbtt_bakedchar chardata[N];
+  int r = stbtt_BakeFontBitmap(reinterpret_cast<unsigned char*>(font_buffer.data()),
+                               0, ptsize, rendered_font_grayscale.data(), width, height,
+                               LOW_CHAR, N, chardata);
+  if (r < 0) { FAIL("BakeFontBitmap not enough space"); }
   self->mapping.resize(HIGH_CHAR);
   for (int c = LOW_CHAR; c < HIGH_CHAR; c++) {
     auto& M = self->mapping[c];
     float x = 0.0, y = 0.0;
     stbtt_aligned_quad q;
-    stbtt_GetPackedQuad(chardata, width, height, c-LOW_CHAR,
-                        &x, &y, &q, 0);
-    M.region.x = q.s0 * width;
-    M.region.y = q.t0 * height;
-    M.region.w = (q.s1 - q.s0) * width;
-    M.region.h = (q.t1 - q.t0) * height;
-    M.xadvance = x;
+    stbtt_GetBakedQuad(chardata, width, height, c-LOW_CHAR, &x, &y, &q, true);
+    M.region.x = floor(q.s0 * width);
+    M.region.y = floor(q.t0 * height);
+    M.region.w = ceil((q.s1 - q.s0) * width);
+    M.region.h = ceil((q.t1 - q.t0) * height);
+    M.xadvance = round(x + xadvance_adjust);
     M.ybaseline = -q.y0;
   }
-
+  
   // Copy the grayscale bitmap into RGBA
   self->rendered_font.resize(width * height * 4);
   for (int i = 0; i < rendered_font_grayscale.size(); i++) {
@@ -121,15 +105,13 @@ Font::~Font() {}
 
 
 void Font::Draw(SDL_Surface* surface, int x, int y, const char* text) const {
+  SDL_Rect dest;
+  dest.x = x;
   for (const char* s = text; *s != '\0'; s++) {
     FontCharacter loc = self->mapping[*s];
-    SDL_Rect dest;
-    dest.x = x;
     dest.y = y - loc.ybaseline;
-    x += loc.xadvance;
-      
-    if (SDL_BlitSurface(self->surface, &loc.region, surface, &dest) < 0) {
-      FAIL("Blit character");
-    }
+    SDL_BlitSurface(self->surface, &loc.region, surface, &dest);
+    dest.x += loc.xadvance;
+    // TODO: kerning with stbtt_GetCodepointKernAdvance(&font, s[0], s[1])
   }
 }
