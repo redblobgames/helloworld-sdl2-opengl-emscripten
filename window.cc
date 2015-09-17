@@ -22,7 +22,7 @@ struct WindowImpl {
 int Window::FRAME = 0;
 
 Window::Window(int width_, int height_)
-  :width(width_), height(height_),
+  :visible(true), width(width_), height(height_),
    self(new WindowImpl(SDL_CreateWindow("Skeleton",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
@@ -41,6 +41,7 @@ void Window::AddLayer(IRenderLayer* layer) {
   self->layers.push_back(layer);
 }
 
+
 void Window::HandleResize() {
   self->context_initialized = false;
   SDL_GL_GetDrawableSize(self->window, &width, &height);
@@ -49,13 +50,30 @@ void Window::HandleResize() {
 
 
 void Window::Render() {
-  glClear(GL_COLOR_BUFFER_BIT);
-  for (auto layer : self->layers) {
-    layer->Render(self->window, !self->context_initialized);
+  if (visible) {
+    glClear(GL_COLOR_BUFFER_BIT);
+    for (auto layer : self->layers) {
+      layer->Render(self->window, !self->context_initialized);
+    }
+    self->context_initialized = true;
+    SDL_GL_SwapWindow(self->window);
+    FRAME++;
   }
-  self->context_initialized = true;
-  SDL_GL_SwapWindow(self->window);
-  FRAME++;
+}
+
+
+void Window::ProcessEvent(SDL_Event* event) {
+  if (event->type == SDL_WINDOWEVENT) {
+    switch (event->window.event) {
+    case SDL_WINDOWEVENT_SHOWN: { visible = true; break; }
+    case SDL_WINDOWEVENT_HIDDEN: { visible = false; break; }
+    case SDL_WINDOWEVENT_SIZE_CHANGED: { HandleResize(); break; }
+    }
+  }
+
+  for (auto layer : self->layers) {
+    layer->ProcessEvent(event);
+  }
 }
 
 

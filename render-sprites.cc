@@ -110,7 +110,6 @@ RenderSpritesImpl::RenderSpritesImpl() {
 RenderSpritesImpl::~RenderSpritesImpl() {}
 
 
-extern float rotation;
 namespace {
   static const GLushort corner_index[6] = { 0, 1, 2, 2, 1, 3 };
 }
@@ -175,9 +174,8 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   GLERRORS("useProgram");
 
   // The uniforms are data that will be the same for all records. The
-  // attributes are data in each record.
-  extern float camera[2];
-  GLfloat u_camera_position[2] = { camera[0], camera[1] };
+  // attributes are data in each record. TODO: export camera
+  GLfloat u_camera_position[2] = { 0, 0 };
   glUniform2fv(self->loc_u_camera_position, 1, u_camera_position);
 
   // Rescale from world coordinates to OpenGL coordinates. We can

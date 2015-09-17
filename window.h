@@ -8,6 +8,7 @@
 #include <memory>
 
 struct SDL_Window;
+union SDL_Event;
 struct WindowImpl;
 
 class Window {
@@ -17,8 +18,10 @@ public:
   void Render();
   void HandleResize();
   void AddLayer(IRenderLayer* layer);
+  void ProcessEvent(SDL_Event* event);
 
   static int FRAME;
+  bool visible;
   int width, height;
 private:
   std::unique_ptr<WindowImpl> self;
