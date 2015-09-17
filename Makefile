@@ -16,11 +16,11 @@ EMXXOUTPUT = html
 
 LOCALFLAGS = -std=c++11 -g -O2 -Wall
 LOCALINCLUDE = $(shell sdl2-config --cflags)
-LOCALLIBS = $(shell sdl2-config --libs) -lSDL2_image -framework OpenGL
+LOCALLIBS = -Wl,-dead_strip $(shell sdl2-config --libs) -lSDL2_image -framework OpenGL
 
 EMXX = em++
 # --profiling
-EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2 -s USE_SDL_IMAGE=2
+EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2 -s USE_SDL_IMAGE=2 -s TOTAL_MEMORY=50331648
 
 all: $(LOCALOUTPUT)/main GTAGS
 

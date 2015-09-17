@@ -4,6 +4,9 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+// I use this for debugging
+#include <iostream>
+
 // Exit the program with an error message
 void FAIL(const char* label);
 

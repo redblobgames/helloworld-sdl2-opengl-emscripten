@@ -10,9 +10,7 @@
 
 #include <SDL2/SDL.h>
 
-#include <iostream>
-
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
 
@@ -97,7 +95,7 @@ void main_loop() {
 }
 
 
-int main() {
+int main(int, char**) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) { FAIL("SDL_Init"); }
   SDL_GL_SetSwapInterval(1);
 
@@ -120,7 +118,7 @@ int main() {
   window->AddLayer(sprite_layer.get());
   // window->AddLayer(overlay_layer.get());
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.
   emscripten_set_main_loop(main_loop, 0, 1);
 #else

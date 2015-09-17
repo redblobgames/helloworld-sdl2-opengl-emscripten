@@ -9,7 +9,6 @@
 #include "glwrappers.h"
 
 #include <vector>
-#include <iostream>
 
 
 struct RenderSurfaceImpl {

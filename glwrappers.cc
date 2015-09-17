@@ -4,8 +4,6 @@
 #include "glwrappers.h"
 #include "common.h"
 
-#include <iostream>
-
 
 void GLERRORS(const char* label) {
 #ifndef __EMSCRIPTEN__
