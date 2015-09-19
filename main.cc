@@ -6,6 +6,7 @@
 #include "window.h"
 #include "render-sprites.h"
 #include "render-surface.h"
+#include "render-imgui.h"
 #include "font.h"
 
 #include <SDL2/SDL.h>
@@ -80,8 +81,10 @@ int main(int, char**) {
 
   sprite_layer = std::unique_ptr<RenderSprites>(new RenderSprites);
   std::unique_ptr<RenderSurface> overlay_layer(new RenderSurface(overlay_surface));
+  std::unique_ptr<RenderImGui> ui_layer(new RenderImGui());
   window->AddLayer(sprite_layer.get());
-  window->AddLayer(overlay_layer.get());
+  //window->AddLayer(overlay_layer.get());
+  window->AddLayer(ui_layer.get());
 
 #ifdef __EMSCRIPTEN__
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.

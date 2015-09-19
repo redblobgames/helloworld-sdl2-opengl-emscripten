@@ -7,7 +7,7 @@
 # For native builds, $LOCALOUTPUT/ and assets/ are needed
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
-MODULES = main glwrappers window atlas font render-sprites render-surface
+MODULES = main glwrappers window atlas font render-sprites render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
 ASSETS = assets/red-blob.png assets/share-tech-mono.ttf
 
 BUILDDIR = build
@@ -40,6 +40,10 @@ $(EMXXOUTPUT)/index.html: emscripten-shell.html $(EMXXOUTPUT)/_main.js
 $(EMXXOUTPUT)/_main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
 	@mkdir -p $(dir $@)
 	$(EMXX) $(EMXXFLAGS) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
+
+# My makefile assumes *.cc, so I make symlinks for *.cpp files
+imgui/%.cc: imgui/%.cpp
+	@ln -s $(<F) $@
 
 $(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o Makefile
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@

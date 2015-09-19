@@ -71,7 +71,7 @@ void RenderSurface::Render(SDL_Window* window, bool reset) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  self->texture.CopyFrom(self->surface);
+  self->texture.CopyFromSurface(self->surface);
   
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, self->texture.id);

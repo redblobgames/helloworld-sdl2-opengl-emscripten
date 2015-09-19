@@ -95,11 +95,13 @@ void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
 Texture::Texture(SDL_Surface* surface) {
   glGenTextures(1, &id);
   if (surface != nullptr) {
-    CopyFrom(surface);
+    CopyFromSurface(surface);
   }
 }
 
-void Texture::CopyFrom(SDL_Surface* surface) {
+void Texture::CopyFromPixels(int width, int height,
+                             GLenum format, void* pixels)
+{
   glBindTexture(GL_TEXTURE_2D, id);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -107,18 +109,18 @@ void Texture::CopyFrom(SDL_Surface* surface) {
   // in WebGL, which we want to use for underlay and overlay images.
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  
-  glTexImage2D(GL_TEXTURE_2D, 0,
-               GL_RGBA,
-               surface->w, surface->h,
-               0,
-               surface->format->BytesPerPixel == 1? GL_ALPHA
-               : surface->format->BytesPerPixel == 3? GL_RGB
-               : GL_RGBA /* TODO: check for other formats */,
-               GL_UNSIGNED_BYTE,
-               surface->pixels
-               );
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, pixels);
   GLERRORS("Texture creation");
+}
+
+
+void Texture::CopyFromSurface(SDL_Surface* surface) {
+  CopyFromPixels(surface->w, surface->h,
+                 surface->format->BytesPerPixel == 1? GL_ALPHA
+                 : surface->format->BytesPerPixel == 3? GL_RGB
+                 : GL_RGBA /* TODO: check for other formats */,
+                 surface->pixels);
 }
 
 Texture::~Texture() {

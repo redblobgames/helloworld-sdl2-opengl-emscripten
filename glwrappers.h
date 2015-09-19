@@ -20,6 +20,8 @@
 #include <SDL2/SDL_opengles2.h>
 #endif
 
+#include "common.h"
+
 // Check for any OpenGL errors and print them
 void GLERRORS(const char* label);
 
@@ -41,7 +43,8 @@ struct Texture {
   GLuint id;
   Texture(SDL_Surface* surface = nullptr);
   ~Texture();
-  void CopyFrom(SDL_Surface* surface);
+  void CopyFromPixels(int width, int height, GLenum format, void* pixels);
+  void CopyFromSurface(SDL_Surface* surface);
 };
 
 

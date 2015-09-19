@@ -29,12 +29,12 @@ struct RenderSpritesImpl {
   std::vector<AttributesDynamic> vertices_dynamic;
   std::vector<GLushort> indices;
   
-  std::unique_ptr<VertexBuffer> vbo_static;
-  std::unique_ptr<VertexBuffer> vbo_dynamic;
-  std::unique_ptr<VertexBuffer> vbo_index;
+  ShaderProgram shader;
+  Texture texture;
   
-  std::unique_ptr<ShaderProgram> shader;
-  std::unique_ptr<Texture> texture;
+  VertexBuffer vbo_static;
+  VertexBuffer vbo_dynamic;
+  VertexBuffer vbo_index;
   
   // Uniforms
   GLint loc_u_camera_position;
@@ -50,7 +50,6 @@ struct RenderSpritesImpl {
   GLint loc_a_rotation;
 
   RenderSpritesImpl();
-  ~RenderSpritesImpl();
 };
 
 
@@ -88,26 +87,21 @@ namespace {
 }
 
 
-RenderSpritesImpl::RenderSpritesImpl() {
-  shader = std::unique_ptr<ShaderProgram>(new ShaderProgram(vertex_shader, fragment_shader));
-  vbo_static = std::unique_ptr<VertexBuffer>(new VertexBuffer);
-  vbo_dynamic = std::unique_ptr<VertexBuffer>(new VertexBuffer);
-  vbo_index = std::unique_ptr<VertexBuffer>(new VertexBuffer);
-
-  loc_u_camera_position = glGetUniformLocation(shader->id, "u_camera_position");
-  loc_u_camera_scale = glGetUniformLocation(shader->id, "u_camera_scale");
-  loc_u_texture = glGetUniformLocation(shader->id, "u_texture");
-  loc_a_corner = glGetAttribLocation(shader->id, "a_corner");
-  loc_a_texcoord = glGetAttribLocation(shader->id, "a_texcoord");
-  loc_a_position = glGetAttribLocation(shader->id, "a_position");
-  loc_a_rotation = glGetAttribLocation(shader->id, "a_rotation");
+RenderSpritesImpl::RenderSpritesImpl()
+  :shader(vertex_shader, fragment_shader)
+{
+  loc_u_camera_position = glGetUniformLocation(shader.id, "u_camera_position");
+  loc_u_camera_scale = glGetUniformLocation(shader.id, "u_camera_scale");
+  loc_u_texture = glGetUniformLocation(shader.id, "u_texture");
+  loc_a_corner = glGetAttribLocation(shader.id, "a_corner");
+  loc_a_texcoord = glGetAttribLocation(shader.id, "a_texcoord");
+  loc_a_position = glGetAttribLocation(shader.id, "a_position");
+  loc_a_rotation = glGetAttribLocation(shader.id, "a_rotation");
 
   // atlas.LoadFont("assets/share-tech-mono.ttf", 52.0);
   atlas.LoadImage("assets/red-blob.png");
-  texture = std::unique_ptr<Texture>(new Texture(atlas.GetSurface()));
+  texture.CopyFromSurface(atlas.GetSurface());
 }
-
-RenderSpritesImpl::~RenderSpritesImpl() {}
 
 
 namespace {
@@ -168,7 +162,7 @@ void RenderSprites::SetSprites(const std::vector<Sprite>& sprites) {
 
   
 void RenderSprites::Render(SDL_Window* window, bool reset) {
-  glUseProgram(self->shader->id);
+  glUseProgram(self->shader.id);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   GLERRORS("useProgram");
@@ -195,27 +189,27 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   // Textures have an id and also a register (0 in this
   // case). We have to bind register 0 to the texture id:
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, self->texture->id);
+  glBindTexture(GL_TEXTURE_2D, self->texture.id);
   // and then we have to tell the shader which register (0) to use:
   glUniform1i(self->loc_u_texture, 0);
   // It might be ok to hard-code the register number inside the shader.
   
   if (Window::FRAME % 100 == 0 || reset) {
     // NOTE: the % 100 simulates the occasional needing to rebuild the buffers because the set of sprites changed
-    glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static->id);
+    glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static.id);
     glBufferData(GL_ARRAY_BUFFER,
                  sizeof(AttributesStatic) * self->vertices_static.size(),
                  self->vertices_static.data(),
                  GL_DYNAMIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index->id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index.id);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  sizeof(GLushort) * self->indices.size(),
                  self->indices.data(),
                  GL_DYNAMIC_DRAW);
   }
   
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic->id);
+  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic.id);
   glBufferData(GL_ARRAY_BUFFER,
                sizeof(AttributesDynamic) * self->vertices_dynamic.size(),
                self->vertices_dynamic.data(),
@@ -223,7 +217,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   
   // Tell the shader program where to find each of the input variables
   // ("attributes") in its vertex shader input.
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static->id);
+  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static.id);
   glVertexAttribPointer(self->loc_a_corner,
                         2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
                         reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, corner)));
@@ -231,7 +225,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
                         2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
                         reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, texcoord)));
   
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic->id);
+  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic.id);
   glVertexAttribPointer(self->loc_a_position,
                         2, GL_FLOAT, GL_FALSE, sizeof(AttributesDynamic),
                         reinterpret_cast<GLvoid*>(offsetof(AttributesDynamic, position)));
@@ -249,7 +243,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   glEnableVertexAttribArray(self->loc_a_texcoord);
   glEnableVertexAttribArray(self->loc_a_position);
   glEnableVertexAttribArray(self->loc_a_rotation);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index->id);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index.id);
   glDrawElements(GL_TRIANGLES, self->indices.size(), GL_UNSIGNED_SHORT, 0);
   glDisableVertexAttribArray(self->loc_a_rotation);
   glDisableVertexAttribArray(self->loc_a_position);
