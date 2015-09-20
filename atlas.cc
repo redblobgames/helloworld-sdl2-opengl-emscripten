@@ -21,7 +21,7 @@
 const int PADDING = 1;
 
 /* For each sprite id, I want to keep its original surface
-   and its current assignment in the texture atlas: x,y,w,h */
+   and its current location in the texture atlas */
 
 struct AtlasImpl {
   int size;
@@ -45,7 +45,7 @@ const SpriteLocation& Atlas::GetLocation(int id) const {
 }
 
 
-int Atlas::LoadImage(const char* filename) {
+int Atlas::AddSurface(SDL_Surface* surface) {
   // The previous atlas is no longer valid
   if (self->atlas) {
     SDL_FreeSurface(self->atlas);
@@ -53,9 +53,7 @@ int Atlas::LoadImage(const char* filename) {
   }
   
   int id = self->mapping.size();
-  self->sources.push_back(IMG_Load(filename));
-  if (self->sources.back() == nullptr) { FAIL("Unable to load image"); }
-  
+  self->sources.push_back(surface);
   self->mapping.emplace_back();
   SpriteLocation& loc = self->mapping.back();
   loc.x0 = -0.5;
@@ -63,8 +61,14 @@ int Atlas::LoadImage(const char* filename) {
   loc.y0 = -0.5;
   loc.y1 = +0.5;
   // s0,t0,s1,t1 will be filled in during the packing phase
-  
+
   return id;
+}
+
+int Atlas::LoadImage(const char* filename) {
+  SDL_Surface* surface = IMG_Load(filename);
+  if (surface == nullptr) { FAIL("Unable to load image"); }
+  return AddSurface(surface);
 }
 
 

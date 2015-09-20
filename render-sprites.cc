@@ -98,7 +98,6 @@ RenderSpritesImpl::RenderSpritesImpl()
   loc_a_position = glGetAttribLocation(shader.id, "a_position");
   loc_a_rotation = glGetAttribLocation(shader.id, "a_rotation");
 
-  // atlas.LoadFont("assets/share-tech-mono.ttf", 52.0);
   atlas.LoadImage("assets/red-blob.png");
   texture.CopyFromSurface(atlas.GetSurface());
 }
