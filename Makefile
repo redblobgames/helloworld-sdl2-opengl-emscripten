@@ -4,7 +4,7 @@
 # - assets/ is used for assets needed when running native binaries
 # - $EMXXOUTPUT/ is used for emscripten output
 #
-# For native builds, $LOCALOUTPUT/ and assets/ are needed
+# For native (Mac OS X) builds, $LOCALOUTPUT/ and assets/ are needed
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
 MODULES = main glwrappers window atlas font render-sprites render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
@@ -14,13 +14,21 @@ BUILDDIR = build
 LOCALOUTPUT = bin
 EMXXOUTPUT = html
 
-LOCALFLAGS = -std=c++11 -g -O2 -Wall
-LOCALINCLUDE = $(shell sdl2-config --cflags)
+LOCALFLAGS = -std=c++11 -g -O2
+
+# Choose the warnings I want, and disable when compiling third party code
+NOWARNDIRS = imgui/ stb/
+LOCALWARN = -Wall -Wextra -pedantic -Wpointer-arith -Wshadow -Wfloat-conversion -Wfloat-equal -Wno-unused-function -Wno-unused-parameter
+# TODO: why doesn't $(NOWARNDIRS:%=--system-header-prefix=%) help? I
+# instead put pragmas into the cc files that include the offending
+# headers.
+# NOTE: also useful but noisy -Wconversion -Wshorten-64-to-32
+
 LOCALLIBS = -Wl,-dead_strip $(shell sdl2-config --libs) -lSDL2_image -framework OpenGL
 
 EMXX = em++
-# --profiling
-EMXXFLAGS = -std=c++11 -O2 -s USE_SDL=2 -s USE_SDL_IMAGE=2 -s TOTAL_MEMORY=50331648
+EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2
+EMXXLINK = -s TOTAL_MEMORY=50331648
 
 all: $(LOCALOUTPUT)/main GTAGS
 
@@ -39,7 +47,7 @@ $(EMXXOUTPUT)/index.html: emscripten-shell.html $(EMXXOUTPUT)/_main.js
 
 $(EMXXOUTPUT)/_main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
 	@mkdir -p $(dir $@)
-	$(EMXX) $(EMXXFLAGS) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
+	$(EMXX) $(EMXXFLAGS) $(EMXXLINK) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
 
 # My makefile assumes *.cc, so I make symlinks for *.cpp files
 imgui/%.cc: imgui/%.cpp
@@ -48,11 +56,13 @@ imgui/%.cc: imgui/%.cpp
 $(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o Makefile
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
+# The $(if ...) uses my warning flags only in WARNDIRS
 $(BUILDDIR)/%.o: %.cc Makefile
 	@mkdir -p $(dir $@)
-	$(CXX) $(LOCALFLAGS) $(LOCALINCLUDE) -MMD -c $< -o $@
+	@echo $(CXX) -c $< -o $@
+	@$(CXX) $(LOCALFLAGS) $(if $(filter-out $(NOWARNDIRS),$(dir $<)),$(LOCALWARN)) -MMD -c $< -o $@
 
 include $(wildcard $(BUILDDIR)/*.d)
 
 clean:
-	rm -f GTAGS GRTAGS GPATH $(BUILDDIR)/* $(LOCALOUTPUT)/* $(EMXXOUTPUT)/*
+	rm -rf GTAGS GRTAGS GPATH $(BUILDDIR)/* $(LOCALOUTPUT)/* $(EMXXOUTPUT)/*

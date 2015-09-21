@@ -4,12 +4,15 @@
 #ifndef RENDER_LAYER_H
 #define RENDER_LAYER_H
 
+#include "common.h"
+
 struct SDL_Window;
 union SDL_Event;
 
-struct IRenderLayer {
-  virtual void Render(SDL_Window* window, bool reset) {};
+struct IRenderLayer: nocopy {
+  virtual void Render(SDL_Window* window, bool reset) {}
   virtual void ProcessEvent(SDL_Event* event) {}
+  virtual ~IRenderLayer();
 };
 
 

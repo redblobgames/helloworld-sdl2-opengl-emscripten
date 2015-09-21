@@ -10,4 +10,11 @@
 // Exit the program with an error message
 void FAIL(const char* label);
 
+// Put on classes that manage resources and aren't to be copied
+struct nocopy {
+  nocopy() = default;
+  nocopy(const nocopy&) = delete;
+  nocopy& operator = (const nocopy&) = delete;
+};
+
 #endif

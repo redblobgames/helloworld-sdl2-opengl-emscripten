@@ -11,11 +11,8 @@
 #include <fstream>
 #include <vector>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "stb/stb_rect_pack.h"
-#pragma clang diagnostic pop
 
 // How many pixels to leave around each sprite
 const int PADDING = 1;
@@ -83,7 +80,7 @@ SDL_Surface* Atlas::GetSurface() {
     stbrp_context context;
 
     rects.resize(self->sources.size());
-    for (int i = 0; i < self->sources.size(); i++) {
+    for (unsigned i = 0; i < self->sources.size(); i++) {
       rects[i].id = i;
       rects[i].w = 2*PADDING + self->sources[i]->w;
       rects[i].h = 2*PADDING + self->sources[i]->h;
@@ -94,7 +91,7 @@ SDL_Surface* Atlas::GetSurface() {
                       working_space.data(), working_space.size());
     stbrp_pack_rects(&context, rects.data(), rects.size());
 
-    for (int i = 0; i < self->sources.size(); i++) {
+    for (unsigned i = 0; i < self->sources.size(); i++) {
       if (!rects[i].was_packed) { FAIL("Could not fit all images"); }
       
       SDL_Rect rect;

@@ -9,6 +9,11 @@
 #include <vector>
 
 
+// NOTE: I need this implementation to be in a cc file and not an h
+// file so that the compiler knows where to put the vtable
+IRenderLayer::~IRenderLayer() {}
+
+
 struct WindowImpl {
   SDL_Window* window;
   bool context_initialized;

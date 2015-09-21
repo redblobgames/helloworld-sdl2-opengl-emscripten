@@ -8,7 +8,10 @@
 #include <SDL2/SDL_image.h>
 #include "glwrappers.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
 #include "imgui/imgui.h"
+#pragma clang diagnostic pop
 
 #include <vector>
 
@@ -201,10 +204,10 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
         pcmd->UserCallback(cmd_list, pcmd);
       } else {
         glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
-        glScissor(pcmd->ClipRect.x,
-                  fb_height - pcmd->ClipRect.w,
-                  pcmd->ClipRect.z - pcmd->ClipRect.x,
-                  pcmd->ClipRect.w - pcmd->ClipRect.y);
+        glScissor(int(pcmd->ClipRect.x),
+                  fb_height - int(pcmd->ClipRect.w),
+                  int(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                  int(pcmd->ClipRect.w - pcmd->ClipRect.y));
         glDrawElements(GL_TRIANGLES, pcmd->ElemCount, GL_UNSIGNED_SHORT, idx_buffer_offset);
       }
       idx_buffer_offset += pcmd->ElemCount;

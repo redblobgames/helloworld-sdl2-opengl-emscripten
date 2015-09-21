@@ -9,8 +9,11 @@
 #include <fstream>
 #include <vector>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
+#pragma clang diagnostic pop
 
 // This is the ascii font range (half-open interval) I support:
 const int LOW_CHAR = 32; // space
@@ -42,7 +45,7 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
   in.read(font_buffer.data(), font_buffer.size());
 
   // Use font metrics to determine how big I need to make the bitmap
-  int width = 0, height = ceil(ptsize);
+  int width = 0, height = int(ceil(ptsize));
   stbtt_fontinfo font;
   stbtt_InitFont(&font, reinterpret_cast<unsigned char*>(font_buffer.data()), 0);
   for (char c = LOW_CHAR; c < HIGH_CHAR; c++) {
@@ -60,7 +63,7 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
   std::vector<unsigned char> rendered_font_grayscale;
   rendered_font_grayscale.resize(width * height);
   
-  int N = HIGH_CHAR - LOW_CHAR;
+  constexpr int N = HIGH_CHAR - LOW_CHAR;
   stbtt_bakedchar chardata[N];
   int r = stbtt_BakeFontBitmap(reinterpret_cast<unsigned char*>(font_buffer.data()),
                                0, ptsize, rendered_font_grayscale.data(), width, height,
@@ -72,17 +75,17 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
     float x = 0.0, y = 0.0;
     stbtt_aligned_quad q;
     stbtt_GetBakedQuad(chardata, width, height, c-LOW_CHAR, &x, &y, &q, true);
-    M.region.x = floor(q.s0 * width);
-    M.region.y = floor(q.t0 * height);
-    M.region.w = ceil((q.s1 - q.s0) * width);
-    M.region.h = ceil((q.t1 - q.t0) * height);
-    M.xadvance = round(x + xadvance_adjust);
-    M.ybaseline = -q.y0;
+    M.region.x = int(floor(q.s0 * width));
+    M.region.y = int(floor(q.t0 * height));
+    M.region.w = int(ceil((q.s1 - q.s0) * width));
+    M.region.h = int(ceil((q.t1 - q.t0) * height));
+    M.xadvance = int(round(x + xadvance_adjust));
+    M.ybaseline = int(-q.y0);
   }
   
   // Copy the grayscale bitmap into RGBA
   self->rendered_font.resize(width * height * 4);
-  for (int i = 0; i < rendered_font_grayscale.size(); i++) {
+  for (unsigned i = 0; i < rendered_font_grayscale.size(); i++) {
     self->rendered_font[i*4    ] = 255;
     self->rendered_font[i*4 + 1] = 255;
     self->rendered_font[i*4 + 2] = 255;

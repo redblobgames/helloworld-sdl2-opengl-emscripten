@@ -29,7 +29,7 @@ void GLERRORS(const char* label);
 SDL_Surface* CreateRGBASurface(int width, int height);
 
 
-struct ShaderProgram {
+struct ShaderProgram: nocopy {
   GLuint id;
   ShaderProgram(const char* vertex_shader, const char* fragment_shader);
   ~ShaderProgram();
@@ -39,7 +39,7 @@ private:
 };
 
 
-struct Texture {
+struct Texture: nocopy {
   GLuint id;
   Texture(SDL_Surface* surface = nullptr);
   ~Texture();
@@ -48,14 +48,14 @@ struct Texture {
 };
 
 
-struct VertexBuffer {
+struct VertexBuffer: nocopy {
   GLuint id;
   VertexBuffer();
   ~VertexBuffer();
 };
 
 
-struct GlContext {
+struct GlContext: nocopy {
   SDL_GLContext id;
   GlContext(SDL_Window* window);
   ~GlContext();

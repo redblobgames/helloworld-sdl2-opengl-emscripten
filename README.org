@@ -10,7 +10,7 @@ Each rendering layer will have its own shader program and vertex buffers, as wel
 
 * Installation
 
-On the Mac I installed these libraries for compilation:
+The Makefile only works on Mac OS X, but the code should work on Linux and Windows and other SDL+OpenGL platforms (I haven't tried though). On Mac I installed these libraries for compilation:
 
 #+begin_src sh
 brew install SDL2 SDL2_image emscripten
