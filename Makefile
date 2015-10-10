@@ -10,6 +10,7 @@
 MODULES = main glwrappers window atlas font render-sprites render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
 ASSETS = assets/red-blob.png assets/share-tech-mono.ttf
 
+UNAME = $(shell uname -s)
 BUILDDIR = build
 LOCALOUTPUT = bin
 EMXXOUTPUT = html
@@ -24,7 +25,12 @@ LOCALWARN = -Wall -Wextra -pedantic -Wpointer-arith -Wshadow -Wfloat-conversion 
 # headers.
 # NOTE: also useful but noisy -Wconversion -Wshorten-64-to-32
 
-LOCALLIBS = -Wl,-dead_strip $(shell sdl2-config --libs) -lSDL2_image -framework OpenGL
+LOCALLIBS = $(shell sdl2-config --libs) -lSDL2_image
+ifeq ($(UNAME),Darwin)
+	LOCALLIBS += -Wl,-dead_strip -framework OpenGL
+else
+	LOCALLIBS += -lGL
+endif
 
 EMXX = em++
 EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2
