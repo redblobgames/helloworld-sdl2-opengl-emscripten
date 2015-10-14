@@ -8,7 +8,7 @@
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
 MODULES = main glwrappers window atlas font render-sprites render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
-ASSETS = assets/red-blob.png assets/share-tech-mono.ttf
+ASSETS = assets/red-blob.png assets/DroidSans.ttf
 
 UNAME = $(shell uname -s)
 BUILDDIR = build
@@ -34,6 +34,7 @@ endif
 
 EMXX = em++
 EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2
+# -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
 EMXXLINK = -s TOTAL_MEMORY=50331648
 
 all: $(LOCALOUTPUT)/main GTAGS

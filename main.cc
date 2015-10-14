@@ -67,7 +67,7 @@ int main(int, char**) {
 
   window = std::unique_ptr<Window>(new Window(800, 600));
 
-  Font font("assets/share-tech-mono.ttf", 32);
+  Font font("assets/DroidSans.ttf", 32);
 
   SDL_Surface* overlay_surface = CreateRGBASurface(window->width, window->height);
   SDL_Rect fillarea;
@@ -82,7 +82,7 @@ int main(int, char**) {
   sprite_layer = std::unique_ptr<RenderSprites>(new RenderSprites);
   std::unique_ptr<RenderSurface> overlay_layer(new RenderSurface(overlay_surface));
   std::unique_ptr<RenderImGui> ui_layer(new RenderImGui());
-  window->AddLayer(sprite_layer.get());
+  // window->AddLayer(sprite_layer.get());
   //window->AddLayer(overlay_layer.get());
   window->AddLayer(ui_layer.get());
 

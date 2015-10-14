@@ -34,4 +34,6 @@ and then tell the webserver to serve the files from =html/=.
 
 The Emscripten-ed output is [[http://www.redblobgames.com/x/1535-opengl-emscripten/html/][here]].
 
-The font included in this project is [[https://www.google.com/fonts/specimen/Share+Tech+Mono][Share Tech Mono]], under the SIL Open Font License 1.1. The ImGui library includes the Proggy font.
+I've also written a partial =CMakeLists.txt= file but am not using it yet.
+
+The font included in this project is [[https://www.google.com/fonts/specimen/Droid+Sans][Droid Sans]], under the Apache License v2. The ImGui library includes the Proggy font.

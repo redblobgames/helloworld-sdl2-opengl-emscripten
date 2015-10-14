@@ -23,6 +23,7 @@ struct RenderImGuiImpl {
 
   uint32_t timestamp;
   bool mouse_button_pressed;
+  bool enter_pressed;
   
   GLint loc_u_screensize;
   GLint loc_u_texture;
@@ -102,7 +103,8 @@ namespace {
 RenderImGuiImpl::RenderImGuiImpl()
   : shader(vertex_shader, fragment_shader),
     timestamp(SDL_GetTicks()),
-    mouse_button_pressed(false)
+    mouse_button_pressed(false),
+    enter_pressed(false)
 {
   loc_u_screensize = glGetUniformLocation(shader.id, "u_screensize");
   loc_u_texture = glGetUniformLocation(shader.id, "u_texture");
@@ -111,6 +113,7 @@ RenderImGuiImpl::RenderImGuiImpl()
   loc_a_rgba = glGetAttribLocation(shader.id, "a_rgba");
 
   ImGuiIO& io = ImGui::GetIO();
+  io.Fonts->AddFontFromFileTTF("assets/DroidSans.ttf", 15.0);
   unsigned char* pixels;
   int width, height;
   io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
@@ -151,12 +154,66 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   self->timestamp = new_timestamp;
   
   ImGui::NewFrame();
+  
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  ImGui::Begin("Status", nullptr, ImVec2(400, 100), 0.5f, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
   // TODO: GUI should be defined elsewhere
-  ImGui::Text("Hello");
+  ImGui::Text("Hello %d %d %d", io.WantCaptureMouse, io.WantCaptureKeyboard, io.WantTextInput);
   ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-  static bool g_show_test_window = true;
-  ImGui::ShowTestWindow(&g_show_test_window);
+  ImGui::End();
+  
+  // Chat window
+  int chat_window_width = 500, chat_window_height = 200;
+  static std::vector<std::string> chat_lines { "Welcome to chat" };
+  static bool scroll_to_bottom = false;
+  ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - chat_window_height));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
+  ImGuiStyle& style = ImGui::GetStyle();
+  style.WindowRounding = 0.0;
+  style.Colors[ImGuiCol_TitleBg] = ImColor::HSV(0, 0.5, 0.5);
+  style.Colors[ImGuiCol_TitleBgActive] = ImColor::HSV(0, 0.7, 0.5);
+  style.Colors[ImGuiCol_TitleBgCollapsed] = ImColor::HSV(0, 0.3, 0.5);
+  style.Colors[ImGuiCol_ScrollbarGrab] = ImColor::HSV(0, 0.3, 0.5);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5, 0.8);
+  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7, 0.5);
+
+  ImGui::Begin("Output", nullptr, ImVec2(chat_window_width, chat_window_height), io.WantTextInput ? 1.0f : 0.7f, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
+  ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvailWidth(), chat_window_height - 50), false, 0);
+  for (auto line : chat_lines) {
+    ImVec4 color = ImColor(255, 128, 64);
+    ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::Text("[chat]");
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    ImGui::TextWrapped("%s", line.c_str());
+  }
+  if (scroll_to_bottom) {
+    ImGui::SetScrollHere();
+    scroll_to_bottom = false;
+  }
+  ImGui::EndChild();
+  ImGui::Separator();
+  static char input[100] = "";
+  ImGui::PushItemWidth(500);
+
+  if (ImGui::InputText("Send", input, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
+    if (input[0] != '\0') { chat_lines.push_back(input); }
+    scroll_to_bottom = true;
+    input[0] = '\0';
+  } else if (!io.WantTextInput && self->enter_pressed) {
+    ImGui::SetKeyboardFocusHere(-1);
+  }
+  self->enter_pressed = false;
+
+  ImGui::End();
+  ImGui::PopStyleVar();
+
+  
+  static bool g_show_test_window = true;
+  if (g_show_test_window) { ImGui::ShowTestWindow(&g_show_test_window); }
+
+  
   ImGui::Render();
   ImDrawData* draw_data = ImGui::GetDrawData();
   draw_data->ScaleClipRects(io.DisplayFramebufferScale);
@@ -254,6 +311,11 @@ void RenderImGui::ProcessEvent(SDL_Event* event) {
   case SDL_KEYDOWN: case SDL_KEYUP: {
     int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
     io.KeysDown[key] = (event->type == SDL_KEYDOWN);
+    if (event->type == SDL_KEYDOWN && key == SDLK_RETURN) {
+      // Used to activate the chat box; TODO: this should be part of
+      // the chat box module and not the render-imgui module
+      self->enter_pressed = true;
+    }
     break;
   }
   }
