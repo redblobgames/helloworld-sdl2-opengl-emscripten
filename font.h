@@ -22,7 +22,10 @@ public:
   // above and below the baseline. For example, a font with ptsize=30
   // and y=100 might draw starting from y=80 and ending at y=120.
   void Draw(SDL_Surface* surface, int x, int y, const char* text) const;
-  
+
+  int Height() const;
+  int Baseline() const;
+  int Width(const char* text) const;
 private:
   std::unique_ptr<FontImpl> self;
 };

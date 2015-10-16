@@ -43,7 +43,7 @@ void main_loop() {
     t += 0.01;
 
     std::vector<Sprite> s;
-    int SIDE = 40;
+    int SIDE = 4;
     int NUM = SIDE * SIDE;
     for (int j = 0; j < NUM; j++) {
       s.emplace_back();
@@ -73,18 +73,18 @@ int main(int, char**) {
   SDL_Rect fillarea;
   fillarea.x = 0;
   fillarea.y = 0;
-  fillarea.w = overlay_surface->w;
-  fillarea.h = 32;
+  fillarea.w = 2 + font.Width("Hello jello");
+  fillarea.h = font.Height();
   SDL_FillRect(overlay_surface, &fillarea, SDL_MapRGBA(overlay_surface->format, 64, 32, 0, 192));
 
-  font.Draw(overlay_surface, 1, 24, "Hello");
+  font.Draw(overlay_surface, 1, font.Baseline(), "Hello jello");
 
   sprite_layer = std::unique_ptr<RenderSprites>(new RenderSprites);
   std::unique_ptr<RenderSurface> overlay_layer(new RenderSurface(overlay_surface));
   std::unique_ptr<RenderImGui> ui_layer(new RenderImGui());
-  // window->AddLayer(sprite_layer.get());
-  //window->AddLayer(overlay_layer.get());
-  window->AddLayer(ui_layer.get());
+  window->AddLayer(sprite_layer.get());
+  window->AddLayer(overlay_layer.get());
+  // window->AddLayer(ui_layer.get());
 
 #ifdef __EMSCRIPTEN__
   // 0 fps means to use requestAnimationFrame; non-0 means to use setTimeout.

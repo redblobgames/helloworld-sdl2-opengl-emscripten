@@ -30,6 +30,8 @@ struct FontCharacter {
   
 struct FontImpl {
   SDL_Surface* surface;
+  int baseline;
+  int height;
   std::vector<unsigned char> rendered_font;
   std::vector<FontCharacter> mapping;
 };
@@ -57,7 +59,7 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
 
   // HACK(amitp): Some fonts seem to need a little more space here,
   // for reasons I don't understand. Examples: Ubuntu-C, NanumGothicCoding
-  height += 5;
+  // height += 5;
   
   // Render the font into the bitmap
   std::vector<unsigned char> rendered_font_grayscale;
@@ -70,6 +72,8 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
                                LOW_CHAR, N, chardata);
   if (r < 0) { FAIL("BakeFontBitmap not enough space"); }
   self->mapping.resize(HIGH_CHAR);
+  self->baseline = 0;
+  self->height = int(ceil(height));
   for (int c = LOW_CHAR; c < HIGH_CHAR; c++) {
     auto& M = self->mapping[c];
     float x = 0.0, y = 0.0;
@@ -81,6 +85,7 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
     M.region.h = int(ceil((q.t1 - q.t0) * height));
     M.xadvance = int(round(x + xadvance_adjust));
     M.ybaseline = int(-q.y0);
+    self->baseline = std::max(self->baseline, M.ybaseline);
   }
   
   // Copy the grayscale bitmap into RGBA
@@ -117,4 +122,21 @@ void Font::Draw(SDL_Surface* surface, int x, int y, const char* text) const {
     dest.x += loc.xadvance;
     // TODO: kerning with stbtt_GetCodepointKernAdvance(&font, s[0], s[1])
   }
+}
+
+
+int Font::Height() const {
+  return self->height;
+}
+
+int Font::Baseline() const {
+  return self->baseline;
+}
+
+int Font::Width(const char* text) const {
+  int width = 0;
+  for (const char* s = text; *s != '\0'; s++) {
+    width += self->mapping[*s].xadvance;
+  }
+  return width;
 }
