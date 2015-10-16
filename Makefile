@@ -69,7 +69,7 @@ $(BUILDDIR)/%.o: %.cc Makefile
 	@echo $(CXX) -c $< -o $@
 	@$(CXX) $(LOCALFLAGS) $(if $(filter-out $(NOWARNDIRS),$(dir $<)),$(LOCALWARN)) -MMD -c $< -o $@
 
-include $(wildcard $(BUILDDIR)/*.d)
+include $(shell find $(BUILDDIR) -name \*.d)
 
 clean:
 	rm -rf GTAGS GRTAGS GPATH $(BUILDDIR)/* $(LOCALOUTPUT)/* $(EMXXOUTPUT)/*
