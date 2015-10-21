@@ -48,6 +48,7 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
 
   // Use font metrics to determine how big I need to make the bitmap
   int width = 0, height = int(ceil(ptsize));
+  self->height = int(ceil(height));
   stbtt_fontinfo font;
   stbtt_InitFont(&font, reinterpret_cast<unsigned char*>(font_buffer.data()), 0);
   for (char c = LOW_CHAR; c < HIGH_CHAR; c++) {
@@ -57,9 +58,9 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
     width += 1 + ceil(ix1 * ptsize / 1000.0) - floor(ix0 * ptsize / 1000.0);
   }
 
-  // HACK(amitp): Some fonts seem to need a little more space here,
-  // for reasons I don't understand. Examples: Ubuntu-C, NanumGothicCoding
-  // height += 5;
+  // HACK(amitp): Some fonts and some sizes seem to need a little more
+  // space here, for reasons I don't understand.
+  height += 5;
   
   // Render the font into the bitmap
   std::vector<unsigned char> rendered_font_grayscale;
@@ -73,7 +74,6 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
   if (r < 0) { FAIL("BakeFontBitmap not enough space"); }
   self->mapping.resize(HIGH_CHAR);
   self->baseline = 0;
-  self->height = int(ceil(height));
   for (int c = LOW_CHAR; c < HIGH_CHAR; c++) {
     auto& M = self->mapping[c];
     float x = 0.0, y = 0.0;
