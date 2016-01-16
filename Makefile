@@ -7,7 +7,7 @@
 # For native (Mac OS X) builds, $LOCALOUTPUT/ and assets/ are needed
 # For emscripten builds, $EMXXOUTPUT/ is needed
 
-MODULES = main glwrappers window atlas font render-sprites render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
+MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
 ASSETS = assets/red-blob.png assets/DroidSans.ttf
 
 UNAME = $(shell uname -s)

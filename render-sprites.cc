@@ -11,6 +11,12 @@
 #include <vector>
 
 
+// NOTE: I split the shader attributes into a static set that has to
+// be updated when the *set* of sprites changes and a dynamic set that
+// has to be updated every frame. I was hoping this would be a
+// worthwhile optimization, but it was premature. TODO: remove this
+// complexity and wait until I actually need to optimize before doing
+// something like this.
 struct AttributesStatic {
   GLfloat corner[2]; // location of corner relative to center, in world coords
   GLfloat texcoord[2]; // texture s,t of this corner
@@ -194,7 +200,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   // It might be ok to hard-code the register number inside the shader.
   
   if (Window::FRAME % 100 == 0 || reset) {
-    // NOTE: the % 100 simulates the occasional needing to rebuild the buffers because the set of sprites changed
+    // HACK: the % 100 simulates the occasional needing to rebuild the buffers because the set of sprites changed.
     glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static.id);
     glBufferData(GL_ARRAY_BUFFER,
                  sizeof(AttributesStatic) * self->vertices_static.size(),
