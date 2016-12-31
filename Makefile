@@ -1,19 +1,20 @@
 # Makefile with autodependencies and separate output directories
 # - $BUILDDIR/ is used for object and other build files
-# - $LOCALOUTPUT/ is used for native binaries
+# - $BINDIR/ is used for native binaries
 # - assets/ is used for assets needed when running native binaries
-# - $EMXXOUTPUT/ is used for emscripten output
+# - $WWWDIR/ is used for emscripten output
 #
-# For native (Mac OS X) builds, $LOCALOUTPUT/ and assets/ are needed
-# For emscripten builds, $EMXXOUTPUT/ is needed
+# For native (Mac OS X) builds, $(BINDIR)/ and assets/ are needed
+# For emscripten builds, $(WWWDIR)/ is needed
 
 MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
 ASSETS = assets/red-blob.png assets/DroidSans.ttf
 
 UNAME = $(shell uname -s)
 BUILDDIR = build
-LOCALOUTPUT = bin
-EMXXOUTPUT = html
+BINDIR = bin
+WWWDIR = www
+_MKDIRS := $(shell mkdir -p $(BINDIR) $(WWWDIR) $(BUILDDIR))
 
 LOCALFLAGS = -std=c++11 -g -O2
 
@@ -21,7 +22,7 @@ LOCALFLAGS = -std=c++11 -g -O2
 NOWARNDIRS = imgui/ stb/
 LOCALWARN = -Wall -Wextra -pedantic -Wpointer-arith -Wshadow -Wfloat-conversion -Wfloat-equal -Wno-unused-function -Wno-unused-parameter
 # TODO: why doesn't $(NOWARNDIRS:%=--system-header-prefix=%) help? I
-# instead put pragmas into the cc files that include the offending
+# instead put pragmas into the cpp files that include the offending
 # headers.
 # NOTE: also useful but noisy -Wconversion -Wshorten-64-to-32
 
@@ -37,34 +38,26 @@ EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2
 # -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
 EMXXLINK = -s TOTAL_MEMORY=50331648
 
-all: $(LOCALOUTPUT)/main GTAGS
+all: $(BINDIR)/main
 
-GTAGS: $(wildcard *.cc) $(wildcard *.h)
-	@[ -r GTAGS ] || gtags --sqlite3
-	@global -u
+$(WWWDIR): $(WWWDIR)/index.html $(WWWDIR)/_main.js
 
-emscripten: $(EMXXOUTPUT)/index.html
-
-$(LOCALOUTPUT)/main: $(MODULES:%=$(BUILDDIR)/%.o) Makefile
+$(BINDIR)/main: $(MODULES:%=$(BUILDDIR)/%.o) Makefile
 	@mkdir -p $(dir $@)
 	$(CXX) $(LOCALFLAGS) $(filter %.o,$^) $(LOCALLIBS) -o $@
 
-$(EMXXOUTPUT)/index.html: emscripten-shell.html $(EMXXOUTPUT)/_main.js
+$(WWWDIR)/index.html: emscripten-shell.html
 	cp emscripten-shell.html $(dir $@)index.html
 
-$(EMXXOUTPUT)/_main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
+$(WWWDIR)/_main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
 	@mkdir -p $(dir $@)
 	$(EMXX) $(EMXXFLAGS) $(EMXXLINK) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
 
-# My makefile assumes *.cc, so I make symlinks for *.cpp files
-imgui/%.cc: imgui/%.cpp
-	@ln -s $(<F) $@
-
-$(BUILDDIR)/%.em.o: %.cc $(BUILDDIR)/%.o Makefile
+$(BUILDDIR)/%.em.o: %.cpp Makefile
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
 # The $(if ...) uses my warning flags only in WARNDIRS
-$(BUILDDIR)/%.o: %.cc Makefile
+$(BUILDDIR)/%.o: %.cpp Makefile
 	@mkdir -p $(dir $@)
 	@echo $(CXX) -c $< -o $@
 	@$(CXX) $(LOCALFLAGS) $(if $(filter-out $(NOWARNDIRS),$(dir $<)),$(LOCALWARN)) -MMD -c $< -o $@
@@ -72,4 +65,4 @@ $(BUILDDIR)/%.o: %.cc Makefile
 include $(shell find $(BUILDDIR) -name \*.d)
 
 clean:
-	rm -rf GTAGS GRTAGS GPATH $(BUILDDIR)/* $(LOCALOUTPUT)/* $(EMXXOUTPUT)/*
+	rm -rf $(BUILDDIR)/* $(BINDIR)/* $(WWWDIR)/*

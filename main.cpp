@@ -18,7 +18,7 @@
 
 #define SHOW_SPRITES 1
 #define SHOW_SHAPES 0
-#define SHOW_IMGUI 0
+#define SHOW_IMGUI 1
 #define SHOW_OVERLAY 1
 
 std::unique_ptr<Window> window;

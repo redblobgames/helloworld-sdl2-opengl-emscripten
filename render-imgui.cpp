@@ -36,8 +36,8 @@ struct RenderImGuiImpl {
 
 
 namespace {
-  const char* Wrap_SDL_GetClipboardText() { return SDL_GetClipboardText(); }
-  void Wrap_SDL_SetClipboardText(const char* s) { SDL_SetClipboardText(s); }
+  const char* Wrap_SDL_GetClipboardText(void*) { return SDL_GetClipboardText(); }
+  void Wrap_SDL_SetClipboardText(void*, const char* s) { SDL_SetClipboardText(s); }
 }
 
 
