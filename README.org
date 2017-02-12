@@ -27,10 +27,10 @@ make && bin/main
 To run the emscripten code:
 
 #+begin_src sh
-make emscripten
+make www
 #+end_src
 
-and then tell the webserver to serve the files from =html/=.
+and then tell the webserver to serve the files from =www/=.
 
 The Emscripten-ed output is [[http://www.redblobgames.com/x/1535-opengl-emscripten/html/][here]].
 
