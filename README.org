@@ -34,7 +34,7 @@ make www
 
 and then tell the webserver to serve the files from =www/=.
 
-The Emscripten-ed output is [[http://www.redblobgames.com/x/1535-opengl-emscripten/html/][here]].
+The Emscripten-ed output is [[http://www.redblobgames.com/x/1535/][here]].
 
 I've also written a partial =CMakeLists.txt= file but am not using it yet.
 

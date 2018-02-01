@@ -211,7 +211,7 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
 
   
   static bool g_show_test_window = true;
-  if (g_show_test_window) { ImGui::ShowTestWindow(&g_show_test_window); }
+  if (g_show_test_window) { ImGui::ShowDemoWindow(&g_show_test_window); }
 
   
   ImGui::Render();
