@@ -34,7 +34,7 @@ else
 endif
 
 EMXX = em++
-EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2
+EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1
 # -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
 EMXXLINK = -s TOTAL_MEMORY=50331648
 

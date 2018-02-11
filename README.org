@@ -1,6 +1,6 @@
 [[http://unmaintained.tech/][http://unmaintained.tech/badge.svg]]
 
-I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled to JS+WebGL with Emscripten. There are some SDL2 + OpenGL tutorials out there but most of them don't target the WebGL subset of OpenGL. I can't use the fixed function pipeline, so older OpenGL code won't work, and I can't use newer things like vertex array objects, instancing, or geometry shaders, so newer OpenGL code often won't work.
+I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled to JS+WebGL with Emscripten+Wasm. There are some SDL2 + OpenGL tutorials out there but most of them don't target the WebGL subset of OpenGL. I can't use the fixed function pipeline, so older OpenGL code won't work, and I can't use newer things like vertex array objects, instancing, or geometry shaders, so newer OpenGL code often won't work.
 
 * Installation
 
@@ -26,8 +26,11 @@ make www
 
 and then tell the webserver to serve the files from =www/=.
 
-The Emscripten-ed output is [[http://www.redblobgames.com/x/1535/][here]].
+The Emscripten-ed wasm output is [[http://www.redblobgames.com/x/1535/][here]].
 
 I've also written a partial =CMakeLists.txt= file but am not using it yet.
 
+To disable WebAssembly, take out the ~-s WASM=1~ flag in the Makefile.
+
 The font included in this project is [[https://www.google.com/fonts/specimen/Droid+Sans][Droid Sans]], under the Apache License v2. The ImGui library includes the Proggy font.
+
