@@ -2,14 +2,6 @@
 
 I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled to JS+WebGL with Emscripten. There are some SDL2 + OpenGL tutorials out there but most of them don't target the WebGL subset of OpenGL. I can't use the fixed function pipeline, so older OpenGL code won't work, and I can't use newer things like vertex array objects, instancing, or geometry shaders, so newer OpenGL code often won't work.
 
-This has grown a little beyond bare-bones.
-
-* Structure
-
-My rough plan:
-
-Each rendering layer will have its own shader program and vertex buffers, as well as its own event handling.
-
 * Installation
 
 The Makefile only works on Mac OS X, but the code should work on Linux and Windows and other SDL+OpenGL platforms (I haven't tried though). On Mac I installed these libraries for compilation:

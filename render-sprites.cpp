@@ -11,35 +11,24 @@
 #include <vector>
 
 
-// NOTE: I split the shader attributes into a static set that has to
-// be updated when the *set* of sprites changes and a dynamic set that
-// has to be updated every frame. I was hoping this would be a
-// worthwhile optimization, but it was premature. TODO: remove this
-// complexity and wait until I actually need to optimize before doing
-// something like this.
-struct AttributesStatic {
-  GLfloat corner[2]; // location of corner relative to center, in world coords
+struct Attributes {
+  GLfloat corner[2];   // location of corner relative to center, in world coords
   GLfloat texcoord[2]; // texture s,t of this corner
-};
-
-struct AttributesDynamic {
   GLfloat position[2]; // location of center in world coordinates
-  GLfloat rotation; // rotation in radians
+  GLfloat rotation;    // rotation in radians
 };
 
 struct RenderSpritesImpl {
   Atlas atlas;
   
   std::vector<Sprite> sprites;
-  std::vector<AttributesStatic> vertices_static;
-  std::vector<AttributesDynamic> vertices_dynamic;
+  std::vector<Attributes> vertices;
   std::vector<GLushort> indices;
   
   ShaderProgram shader;
   Texture texture;
   
-  VertexBuffer vbo_static;
-  VertexBuffer vbo_dynamic;
+  VertexBuffer vbo_attributes;
   VertexBuffer vbo_index;
   
   // Uniforms
@@ -47,11 +36,9 @@ struct RenderSpritesImpl {
   GLint loc_u_camera_scale;
   GLint loc_u_texture;
   
-  // A sprite is described with "static" attributes:
+  // Attributes per sprite
   GLint loc_a_corner;
   GLint loc_a_texcoord;
-
-  // and "dynamic" attributes that are expected to change every frame:
   GLint loc_a_position;
   GLint loc_a_rotation;
 
@@ -115,53 +102,50 @@ namespace {
 
 
 void RenderSprites::SetSprites(const std::vector<Sprite>& sprites) {
-  auto& vertices_static = self->vertices_static;
-  auto& vertices_dynamic = self->vertices_dynamic;
+  auto& vertices = self->vertices;
   auto& indices = self->indices;
   
   static float t = 0.0;
   t += 0.01;
 
   int N = sprites.size();
-  vertices_static.resize(N * 4);
+  vertices.resize(N * 4);
   for (int j = 0; j < N; j++) {
     const Sprite& S = sprites[j];
     SpriteLocation loc = self->atlas.GetLocation(S.image_id);
     int i = j * 4;
-    vertices_static[i].corner[0] = loc.x0 * S.scale;
-    vertices_static[i].corner[1] = loc.y0 * S.scale;
-    vertices_static[i].texcoord[0] = loc.s0;
-    vertices_static[i].texcoord[1] = loc.t0;
+    vertices[i].corner[0] = loc.x0 * S.scale;
+    vertices[i].corner[1] = loc.y0 * S.scale;
+    vertices[i].texcoord[0] = loc.s0;
+    vertices[i].texcoord[1] = loc.t0;
     i++;
-    vertices_static[i].corner[0] = loc.x1 * S.scale;
-    vertices_static[i].corner[1] = loc.y0 * S.scale;
-    vertices_static[i].texcoord[0] = loc.s1;
-    vertices_static[i].texcoord[1] = loc.t0;
+    vertices[i].corner[0] = loc.x1 * S.scale;
+    vertices[i].corner[1] = loc.y0 * S.scale;
+    vertices[i].texcoord[0] = loc.s1;
+    vertices[i].texcoord[1] = loc.t0;
     i++;
-    vertices_static[i].corner[0] = loc.x0 * S.scale;
-    vertices_static[i].corner[1] = loc.y1 * S.scale;
-    vertices_static[i].texcoord[0] = loc.s0;
-    vertices_static[i].texcoord[1] = loc.t1;
+    vertices[i].corner[0] = loc.x0 * S.scale;
+    vertices[i].corner[1] = loc.y1 * S.scale;
+    vertices[i].texcoord[0] = loc.s0;
+    vertices[i].texcoord[1] = loc.t1;
     i++;
-    vertices_static[i].corner[0] = loc.x1 * S.scale;
-    vertices_static[i].corner[1] = loc.y1 * S.scale;
-    vertices_static[i].texcoord[0] = loc.s1;
-    vertices_static[i].texcoord[1] = loc.t1;
+    vertices[i].corner[0] = loc.x1 * S.scale;
+    vertices[i].corner[1] = loc.y1 * S.scale;
+    vertices[i].texcoord[0] = loc.s1;
+    vertices[i].texcoord[1] = loc.t1;
   }
-    
+
+  for (int i = 0; i < N * 4; i++) {
+    int j = i / 4;
+    vertices[i].position[0] = sprites[j].x;
+    vertices[i].position[1] = sprites[j].y;
+    vertices[i].rotation = sprites[j].rotation_degrees * M_PI / 180.0;
+  }
+  
   indices.resize(N * 6);
   for (int i = 0; i < N * 6; i++) {
     int j = i / 6;
     indices[i] = j * 4 + corner_index[i % 6];
-  }
-    
-  vertices_dynamic.resize(N * 4);
-  for (int i = 0; i < N * 4; i++) {
-    AttributesDynamic& record = vertices_dynamic[i];
-    int j = i / 4;
-    record.position[0] = sprites[j].x;
-    record.position[1] = sprites[j].y;
-    record.rotation = sprites[j].rotation_degrees * M_PI / 180.0;
   }
 }
 
@@ -199,44 +183,32 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   glUniform1i(self->loc_u_texture, 0);
   // It might be ok to hard-code the register number inside the shader.
   
-  if (Window::FRAME % 100 == 0 || reset) {
-    // HACK: the % 100 simulates the occasional needing to rebuild the buffers because the set of sprites changed.
-    glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static.id);
-    glBufferData(GL_ARRAY_BUFFER,
-                 sizeof(AttributesStatic) * self->vertices_static.size(),
-                 self->vertices_static.data(),
-                 GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index.id);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               sizeof(GLushort) * self->indices.size(),
+               self->indices.data(),
+               GL_DYNAMIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->vbo_index.id);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(GLushort) * self->indices.size(),
-                 self->indices.data(),
-                 GL_DYNAMIC_DRAW);
-  }
-  
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic.id);
-  glBufferData(GL_ARRAY_BUFFER,
-               sizeof(AttributesDynamic) * self->vertices_dynamic.size(),
-               self->vertices_dynamic.data(),
-               GL_STREAM_DRAW);
-  
   // Tell the shader program where to find each of the input variables
   // ("attributes") in its vertex shader input.
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_static.id);
-  glVertexAttribPointer(self->loc_a_corner,
-                        2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
-                        reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, corner)));
-  glVertexAttribPointer(self->loc_a_texcoord,
-                        2, GL_FLOAT, GL_FALSE, sizeof(AttributesStatic),
-                        reinterpret_cast<GLvoid*>(offsetof(AttributesStatic, texcoord)));
+  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_attributes.id);
+  glBufferData(GL_ARRAY_BUFFER,
+               sizeof(Attributes) * self->vertices.size(),
+               self->vertices.data(),
+               GL_STREAM_DRAW);
   
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo_dynamic.id);
+  glVertexAttribPointer(self->loc_a_corner,
+                        2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, corner)));
+  glVertexAttribPointer(self->loc_a_texcoord,
+                        2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, texcoord)));
   glVertexAttribPointer(self->loc_a_position,
-                        2, GL_FLOAT, GL_FALSE, sizeof(AttributesDynamic),
-                        reinterpret_cast<GLvoid*>(offsetof(AttributesDynamic, position)));
+                        2, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, position)));
   glVertexAttribPointer(self->loc_a_rotation,
-                        1, GL_FLOAT, GL_FALSE, sizeof(AttributesDynamic),
-                        reinterpret_cast<GLvoid*>(offsetof(AttributesDynamic, rotation)));
+                        1, GL_FLOAT, GL_FALSE, sizeof(Attributes),
+                        reinterpret_cast<GLvoid*>(offsetof(Attributes, rotation)));
   
   GLERRORS("glVertexAttribPointer");
 

@@ -13,8 +13,8 @@ struct RenderSpritesImpl;
 
 
 struct Sprite {
-  /* dynamic */ double x, y, rotation_degrees;
-  /* static */ double scale; int image_id;
+  int image_id;
+  double x, y, rotation_degrees, scale;
 };
 
 
