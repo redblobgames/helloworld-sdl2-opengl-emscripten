@@ -16,7 +16,8 @@ BINDIR = bin
 WWWDIR = www
 _MKDIRS := $(shell mkdir -p $(BINDIR) $(WWWDIR) $(BUILDDIR))
 
-LOCALFLAGS = -std=c++11 -g -O2
+COMMONFLAGS = -std=c++11 -MMD -MP
+LOCALFLAGS = -g -O2 $(COMMONFLAGS)
 
 # Choose the warnings I want, and disable when compiling third party code
 NOWARNDIRS = imgui/ stb/
@@ -34,7 +35,7 @@ else
 endif
 
 EMXX = em++
-EMXXFLAGS = -std=c++11 -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1
+EMXXFLAGS = $(COMMONFLAGS) -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1
 # -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
 EMXXLINK = -s TOTAL_MEMORY=50331648
 
@@ -43,26 +44,26 @@ all: $(BINDIR)/main
 $(WWWDIR): $(WWWDIR)/index.html $(WWWDIR)/_main.js
 
 $(BINDIR)/main: $(MODULES:%=$(BUILDDIR)/%.o) Makefile
-	@mkdir -p $(dir $@)
 	$(CXX) $(LOCALFLAGS) $(filter %.o,$^) $(LOCALLIBS) -o $@
 
 $(WWWDIR)/index.html: emscripten-shell.html
 	cp emscripten-shell.html $(dir $@)index.html
 
 $(WWWDIR)/_main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
-	@mkdir -p $(dir $@)
 	$(EMXX) $(EMXXFLAGS) $(EMXXLINK) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
 
 $(BUILDDIR)/%.em.o: %.cpp Makefile
-	$(EMXX) $(EMXXFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)
+	@echo $(EMXX) -c $< -o $@
+	@$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
 # The $(if ...) uses my warning flags only in WARNDIRS
 $(BUILDDIR)/%.o: %.cpp Makefile
 	@mkdir -p $(dir $@)
 	@echo $(CXX) -c $< -o $@
-	@$(CXX) $(LOCALFLAGS) $(if $(filter-out $(NOWARNDIRS),$(dir $<)),$(LOCALWARN)) -MMD -c $< -o $@
-
-include $(shell find $(BUILDDIR) -name \*.d)
+	@$(CXX) $(LOCALFLAGS) $(if $(filter-out $(NOWARNDIRS),$(dir $<)),$(LOCALWARN)) -c $< -o $@
 
 clean:
 	rm -rf $(BUILDDIR)/* $(BINDIR)/* $(WWWDIR)/*
+
+include $(shell find $(BUILDDIR) -name \*.d)
