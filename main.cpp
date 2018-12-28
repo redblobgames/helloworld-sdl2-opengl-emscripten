@@ -105,7 +105,7 @@ int main(int, char**) {
 
   window = std::unique_ptr<Window>(new Window(800, 600));
 
-  Font font("assets/DroidSans.ttf", 32);
+  Font font("imgui/misc/fonts/DroidSans.ttf", 32);
 
   SDL_Surface* overlay_surface = CreateRGBASurface(window->width, window->height);
   SDL_Rect fillarea;

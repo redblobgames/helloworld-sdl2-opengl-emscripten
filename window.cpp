@@ -9,7 +9,7 @@
 #include <vector>
 
 
-// NOTE: I need this implementation to be in a cc file and not an h
+// NOTE: I need this implementation to be in a cpp file and not an h
 // file so that the compiler knows where to put the vtable
 IRenderLayer::~IRenderLayer() {}
 
@@ -28,7 +28,7 @@ int Window::FRAME = 0;
 
 Window::Window(int width_, int height_)
   :visible(true), width(width_), height(height_),
-   self(new WindowImpl(SDL_CreateWindow("Skeleton",
+   self(new WindowImpl(SDL_CreateWindow("Hello World",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             width,

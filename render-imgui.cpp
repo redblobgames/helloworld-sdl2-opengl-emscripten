@@ -32,6 +32,7 @@ struct RenderImGuiImpl {
   GLint loc_a_rgba;
   
   RenderImGuiImpl();
+  ~RenderImGuiImpl();
 };
 
 
@@ -69,7 +70,6 @@ RenderImGui::RenderImGui(): self(new RenderImGuiImpl) {
 
 
 RenderImGui::~RenderImGui() {
-  ImGui::Shutdown();
 }
 
 
@@ -106,6 +106,9 @@ RenderImGuiImpl::RenderImGuiImpl()
     mouse_button_pressed(false),
     enter_pressed(false)
 {
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  
   loc_u_screensize = glGetUniformLocation(shader.id, "u_screensize");
   loc_u_texture = glGetUniformLocation(shader.id, "u_texture");
   loc_a_xy = glGetAttribLocation(shader.id, "a_xy");
@@ -113,7 +116,7 @@ RenderImGuiImpl::RenderImGuiImpl()
   loc_a_rgba = glGetAttribLocation(shader.id, "a_rgba");
 
   ImGuiIO& io = ImGui::GetIO();
-  io.Fonts->AddFontFromFileTTF("assets/DroidSans.ttf", 15.0);
+  io.Fonts->AddFontFromFileTTF("imgui/misc/fonts/DroidSans.ttf", 15.0);
   unsigned char* pixels;
   int width, height;
   io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
@@ -121,6 +124,11 @@ RenderImGuiImpl::RenderImGuiImpl()
   io.Fonts->TexID = (void *)(intptr_t)font_texture.id;
   io.Fonts->ClearInputData();
   io.Fonts->ClearTexData();
+}
+
+
+RenderImGuiImpl::~RenderImGuiImpl() {
+  ImGui::DestroyContext();
 }
 
 
@@ -289,7 +297,7 @@ void RenderImGui::ProcessEvent(SDL_Event* event) {
   }
   case SDL_MOUSEBUTTONDOWN: {
     // NOTE: I'm only handling left button here because that's all
-    // ImGui uses for its standard widgets. It'd be simpelr to set
+    // ImGui uses for its standard widgets. It'd be simpler to set
     // io.MouseDown to true on SDL_MOUSEBUTTONDOWN and false on
     // SDL_MOUSEBUTTONUP. However, because ImGui is polling instead of
     // event-driven, it will miss a quick click. The workaround is to

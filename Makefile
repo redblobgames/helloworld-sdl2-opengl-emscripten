@@ -7,8 +7,8 @@
 # For native (Mac OS X) builds, $(BINDIR)/ and assets/ are needed
 # For emscripten builds, $(WWWDIR)/ is needed
 
-MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_demo
-ASSETS = assets/red-blob.png assets/DroidSans.ttf
+MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_widgets imgui/imgui_demo
+ASSETS = assets/red-blob.png imgui/misc/fonts/DroidSans.ttf
 
 UNAME = $(shell uname -s)
 BUILDDIR = build
