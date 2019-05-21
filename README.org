@@ -4,7 +4,16 @@ I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled 
 
 * Installation
 
-The Makefile only works on Mac OS X, but the code should work on Linux and Windows and other SDL+OpenGL platforms (I haven't tried though). On Mac I installed these libraries for compilation:
+Simplest is usually using [Docker](https://www.docker.com/), once install run:
+
+#+begin_src sh
+docker build -t builder .
+docker run --rm -it -v $PWD:/code -v emcache:/root/.emscripten_cache -p 8080:8080 builder
+#+end_src
+
+Once done this would generate =bin/main=, a native Linux binary (needing SDL2 and SDL2 Image libraries), and run a server serving the WebAssembly page your can see by going to http://localhost:8080 from your machine.
+
+Another option is using the Makefile which works on Mac OS X and Linux and possibly Windows and other SDL+OpenGL platforms (I haven't tried though). On Mac I installed these libraries for compilation:
 
 #+begin_src sh
 brew install SDL2 SDL2_image emscripten
