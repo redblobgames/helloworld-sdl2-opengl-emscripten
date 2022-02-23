@@ -4,7 +4,7 @@
 #include "render-shapes.h"
 #include "window.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "glwrappers.h"
 
 #include <vector>

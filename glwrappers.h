@@ -8,17 +8,10 @@
 #ifndef GLWRAPPERS_H
 #define GLWRAPPERS_H
 
-// NOTE(amitp): Mac doesn't have OpenGL ES headers, and the path to GL
-// headers is different. This header file handles the
-// platform-specific paths.
-
-#include <SDL2/SDL.h>
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#else
-#include <SDL2/SDL_opengles2.h>
-#endif
+#define GL_GLEXT_PROTOTYPES
+#include <SDL.h>
+#include <SDL_opengl.h>
+#include <SDL_opengl_glext.h>
 
 #include "common.h"
 

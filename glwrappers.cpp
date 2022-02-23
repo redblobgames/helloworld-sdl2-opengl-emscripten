@@ -40,10 +40,16 @@ ShaderProgram::ShaderProgram(const char* vertex_shader, const char* fragment_sha
   id = glCreateProgram();
   if (id == 0) { FAIL("glCreateProgram"); }
 
-#ifdef GL_ES_VERSION_2_0
+#ifdef __EMSCRIPTEN__
   // WebGL requires precision specifiers but OpenGL 2.1 disallows
   // them, so I define the shader without it and then add it here.
-  std::string new_fragment_shader = "precision mediump float;\n";
+  // Although mediump is commonly used, I consider mediump to be an
+  // optimization for mobile. On desktop, it's almost always mapped to
+  // highp in WebGL. Shaders using mediump will work fine on desktop
+  // but then fail on mobile, so I think it's safer to use highp on
+  // mobile unless you test and verify that mediump works fine. See
+  // https://webglfundamentals.org/webgl/lessons/webgl-cross-platform-issues.html
+  std::string new_fragment_shader = "precision highp float;\n";
   new_fragment_shader += fragment_shader;
   fragment_shader = new_fragment_shader.c_str();
 #endif

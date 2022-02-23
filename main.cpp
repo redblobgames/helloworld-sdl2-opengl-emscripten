@@ -10,7 +10,7 @@
 #include "render-imgui.h"
 #include "font.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>

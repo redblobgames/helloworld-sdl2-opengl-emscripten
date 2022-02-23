@@ -5,8 +5,8 @@
 #include "glwrappers.h"
 #include "common.h"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL.h>
+#include <SDL_image.h>
 
 #include <fstream>
 #include <vector>

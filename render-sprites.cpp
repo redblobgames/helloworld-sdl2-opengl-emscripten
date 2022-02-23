@@ -5,7 +5,7 @@
 #include "window.h"
 #include "atlas.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "glwrappers.h"
 
 #include <vector>

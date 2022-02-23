@@ -17,7 +17,7 @@ WWWDIR = www
 _MKDIRS := $(shell mkdir -p $(BINDIR) $(WWWDIR) $(BUILDDIR))
 
 COMMONFLAGS = -std=c++11 -MMD -MP
-LOCALFLAGS = -g -O2 $(COMMONFLAGS)
+LOCALFLAGS = -g -O2 $(COMMONFLAGS) $(shell pkg-config --cflags sdl2)
 
 # Choose the warnings I want, and disable when compiling third party code
 NOWARNDIRS = imgui/ stb/
