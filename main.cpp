@@ -50,7 +50,7 @@ void main_loop() {
 
   if (window->visible) {
     static float t = 0.0;
-    t += 0.01;
+    t += 0.01f;
 
 #if SHOW_SPRITES
     {
@@ -61,10 +61,10 @@ void main_loop() {
         sprites.emplace_back();
         auto& s = sprites.back();
         s.image_id = 0;
-        s.x = (0.5 + j % SIDE - 0.5*SIDE + ((j/SIDE)%2) * 0.5 - 0.25) * 2.0 / SIDE;
-        s.y = (0.5 + j / SIDE - 0.5*SIDE) * 2.0 / SIDE;
-        s.scale = 2.0 / SIDE;
-        s.rotation_degrees = 180/M_PI * (j * 0.03 * t);
+        s.x = (0.5f + j % SIDE - 0.5f*SIDE + ((j/SIDE)%2) * 0.5f - 0.25f) * 2.0f / SIDE;
+        s.y = (0.5f + j / SIDE - 0.5f*SIDE) * 2.0f / SIDE;
+        s.scale = 2.0f / SIDE;
+        s.rotation_degrees = j * 0.03f * t * DEG_TO_RAD;
       }
 
       sprite_layer->SetSprites(sprites);

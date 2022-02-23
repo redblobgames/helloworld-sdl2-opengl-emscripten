@@ -8,10 +8,7 @@
 #include <SDL_image.h>
 #include "glwrappers.h"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wfloat-equal"
-#include "imgui/imgui.h"
-#pragma clang diagnostic pop
+#include <imgui/imgui.h>
 
 #include <vector>
 
@@ -158,7 +155,7 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
 
   // Time since last frame:
   uint32_t new_timestamp = SDL_GetTicks();
-  io.DeltaTime = (new_timestamp - self->timestamp) / 1000.0;
+  io.DeltaTime = (new_timestamp - self->timestamp) / 1000.0f;
   self->timestamp = new_timestamp;
   
   ImGui::NewFrame();
@@ -179,12 +176,12 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
 
   ImGuiStyle& style = ImGui::GetStyle();
   style.WindowRounding = 0.0;
-  style.Colors[ImGuiCol_TitleBg] = ImColor::HSV(0, 0.5, 0.5);
-  style.Colors[ImGuiCol_TitleBgActive] = ImColor::HSV(0, 0.7, 0.5);
-  style.Colors[ImGuiCol_TitleBgCollapsed] = ImColor::HSV(0, 0.3, 0.5);
-  style.Colors[ImGuiCol_ScrollbarGrab] = ImColor::HSV(0, 0.3, 0.5);
-  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5, 0.8);
-  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7, 0.5);
+  style.Colors[ImGuiCol_TitleBg] = ImColor::HSV(0, 0.5f, 0.5f);
+  style.Colors[ImGuiCol_TitleBgActive] = ImColor::HSV(0, 0.7f, 0.5f);
+  style.Colors[ImGuiCol_TitleBgCollapsed] = ImColor::HSV(0, 0.3f, 0.5f);
+  style.Colors[ImGuiCol_ScrollbarGrab] = ImColor::HSV(0, 0.3f, 0.5f);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5f, 0.8f);
+  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7f, 0.5f);
 
   ImGui::Begin("Output", nullptr, ImVec2(chat_window_width, chat_window_height), io.WantTextInput ? 1.0f : 0.7f, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
   ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvailWidth(), chat_window_height - 50), false, 0);

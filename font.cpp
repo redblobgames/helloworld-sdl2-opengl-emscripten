@@ -9,11 +9,8 @@
 #include <fstream>
 #include <vector>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wfloat-equal"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
-#pragma clang diagnostic pop
+#include <stb/stb_truetype.h>
 
 // This is the ascii font range (half-open interval) I support:
 const int LOW_CHAR = 32; // space
@@ -55,7 +52,7 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
     int ix0, iy0, ix1, iy1;
     stbtt_GetCodepointBitmapBox(&font, c, 1, 1, &ix0, &iy0, &ix1, &iy1);
     // NOTE(amitp): I'm not 100% convinced this is always enough space
-    width += 1 + ceil(ix1 * ptsize / 1000.0) - floor(ix0 * ptsize / 1000.0);
+    width += 1 + int(ceil(ix1 * ptsize / 1000.0) - floor(ix0 * ptsize / 1000.0));
   }
 
   // HACK(amitp): Some fonts and some sizes seem to need a little more

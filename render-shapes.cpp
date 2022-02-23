@@ -102,8 +102,8 @@ float distance_from_edge_to_point(float x1, float y1, float x2, float y2, float 
   // setting that to 1/2 * base * height. I chose the area
   // approach; see
   // <https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points>
-  double dx = x2 - x1, dy = y2 - y1;
-  double length = hypot(dx, dy);
+  float dx = x2 - x1, dy = y2 - y1;
+  float length = hypot(dx, dy);
   return -(dy * x - dx * y + x2*y1 - y2*x1) / length;
 }
 

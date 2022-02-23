@@ -4,7 +4,7 @@
 # - assets/ is used for assets needed when running native binaries
 # - $WWWDIR/ is used for emscripten output
 #
-# For native (Mac OS X) builds, $(BINDIR)/ and assets/ are needed
+# For native (Mac OS X, Linux) builds, $(BINDIR)/ and assets/ are needed
 # For emscripten builds, $(WWWDIR)/ is needed
 
 MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_widgets imgui/imgui_demo
@@ -16,15 +16,12 @@ BINDIR = bin
 WWWDIR = www
 _MKDIRS := $(shell mkdir -p $(BINDIR) $(WWWDIR) $(BUILDDIR))
 
-COMMONFLAGS = -std=c++11 -MMD -MP
+COMMONFLAGS = -std=c++11 -MMD -MP -isystem .
 LOCALFLAGS = -g -O2 $(COMMONFLAGS) $(shell pkg-config --cflags sdl2)
 
 # Choose the warnings I want, and disable when compiling third party code
 NOWARNDIRS = imgui/ stb/
 LOCALWARN = -Wall -Wextra -pedantic -Wpointer-arith -Wshadow -Wfloat-conversion -Wfloat-equal -Wno-unused-function -Wno-unused-parameter
-# TODO: why doesn't $(NOWARNDIRS:%=--system-header-prefix=%) help? I
-# instead put pragmas into the cpp files that include the offending
-# headers.
 # NOTE: also useful but noisy -Wconversion -Wshorten-64-to-32
 
 LOCALLIBS = $(shell sdl2-config --libs) -lSDL2_image

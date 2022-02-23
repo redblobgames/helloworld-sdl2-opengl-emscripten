@@ -11,10 +11,11 @@
 struct SDL_Window;
 struct RenderSpritesImpl;
 
+const float DEG_TO_RAD = 3.141592653589793f / 180.0f;
 
 struct Sprite {
   int image_id;
-  double x, y, rotation_degrees, scale;
+  float x, y, rotation_degrees, scale;
 };
 
 

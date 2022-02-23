@@ -4,13 +4,42 @@ I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled 
 
 * Installation
 
-The Makefile only works on Mac OS X, but the code should work on Linux and Windows and other SDL+OpenGL platforms (I haven't tried though). On Mac I installed these libraries for compilation:
+The Makefile should work on Mac OS X and Linux. The code should work on Windows and other SDL+OpenGL platforms but I haven't tested that. 
+
+** Install SDL2
+
+On Mac using Homebrew:
 
 #+begin_src sh
-brew install SDL2 SDL2_image emscripten
+brew install SDL2 SDL2_image
+#+end_src
+
+On RedHat/Fedora flavors of Linux:
+
+#+begin_src sh
+sudo yum install SDL2-devel SDL2_image-devel
+#+end_src
+
+On Debian/Ubuntu flavors of Linux:
+
+#+begin_src sh
+sudo apt install libsdl2-dev libsdl2-image-dev
+#+end_src
+
+On Arch flavors of Linux:
+
+#+begin_src sh
+sudo pacman -S sdl2 sdl2_image
+#+end_src
+
+** Install STB, Dear Imgui
+
+#+begin_src sh
 git submodule init
 git submodule update
 #+end_src
+
+** Compiling and running
 
 To run the native code:
 
@@ -18,7 +47,7 @@ To run the native code:
 make && bin/main
 #+end_src
 
-To run the emscripten code:
+To run the emscripten code: (~brew install emscripten~ on Mac, ~pacman -S emscripten~ on Arch Linux):
 
 #+begin_src sh
 make www
@@ -26,11 +55,9 @@ make www
 
 and then tell the webserver to serve the files from =www/=.
 
-The Emscripten-ed wasm output is [[http://www.redblobgames.com/x/1535/][here]].
+My Emscripten-ed wasm output is [[https://www.redblobgames.com/x/1535/][on my web site]].
 
 I've also written a partial =CMakeLists.txt= file but am not using it yet.
-
-To disable WebAssembly, take out the ~-s WASM=1~ flag in the Makefile.
 
 The font included in this project is [[https://www.google.com/fonts/specimen/Droid+Sans][Droid Sans]], under the Apache License v2. The ImGui library includes the Proggy font.
 

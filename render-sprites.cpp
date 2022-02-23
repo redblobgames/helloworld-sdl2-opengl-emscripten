@@ -106,7 +106,7 @@ void RenderSprites::SetSprites(const std::vector<Sprite>& sprites) {
   auto& indices = self->indices;
   
   static float t = 0.0;
-  t += 0.01;
+  t += 0.01f;
 
   int N = sprites.size();
   vertices.resize(N * 4);
@@ -139,7 +139,7 @@ void RenderSprites::SetSprites(const std::vector<Sprite>& sprites) {
     int j = i / 4;
     vertices[i].position[0] = sprites[j].x;
     vertices[i].position[1] = sprites[j].y;
-    vertices[i].rotation = sprites[j].rotation_degrees * M_PI / 180.0;
+    vertices[i].rotation = sprites[j].rotation_degrees / DEG_TO_RAD;
   }
   
   indices.resize(N * 6);
