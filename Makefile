@@ -7,7 +7,8 @@
 # For native (Mac OS X, Linux) builds, $(BINDIR)/ and assets/ are needed
 # For emscripten builds, $(WWWDIR)/ is needed
 
-MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui imgui/imgui imgui/imgui_draw imgui/imgui_widgets imgui/imgui_demo
+MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui \
+    imgui/imgui imgui/imgui_draw imgui/imgui_widgets imgui/imgui_tables imgui/imgui_demo
 ASSETS = assets/red-blob.png imgui/misc/fonts/DroidSans.ttf
 
 UNAME = $(shell uname -s)
@@ -32,9 +33,9 @@ else
 endif
 
 EMXX = em++
-EMXXFLAGS = $(COMMONFLAGS) -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1
+EMXXFLAGS = $(COMMONFLAGS) -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2
 # -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
-EMXXLINK = -s TOTAL_MEMORY=50331648
+EMXXLINK = -s TOTAL_MEMORY=50331648 --use-preload-plugins
 
 all: $(BINDIR)/main
 

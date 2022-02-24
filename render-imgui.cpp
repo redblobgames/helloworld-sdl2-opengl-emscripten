@@ -160,12 +160,15 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   
   ImGui::NewFrame();
   
-  ImGui::SetNextWindowPos(ImVec2(0, 0));
-  ImGui::Begin("Status", nullptr, ImVec2(400, 100), 0.5f, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+  ImGui::SetNextWindowPos(ImVec2(0, 50));
+  ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_FirstUseEver);
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f));
+  ImGui::Begin("Status", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
   // TODO: GUI should be defined elsewhere
   ImGui::Text("Hello %d %d %d", io.WantCaptureMouse, io.WantCaptureKeyboard, io.WantTextInput);
   ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
   ImGui::End();
+  ImGui::PopStyleColor();
   
   // Chat window
   int chat_window_width = 500, chat_window_height = 200;
@@ -183,8 +186,10 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5f, 0.8f);
   style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7f, 0.5f);
 
-  ImGui::Begin("Output", nullptr, ImVec2(chat_window_width, chat_window_height), io.WantTextInput ? 1.0f : 0.7f, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
-  ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvailWidth(), chat_window_height - 50), false, 0);
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, io.WantTextInput ? 1.0f : 0.7f));
+  ImGui::SetNextWindowSize(ImVec2(chat_window_width, chat_window_height), ImGuiCond_FirstUseEver);
+  ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
+  ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvail().x, chat_window_height - 50), false, 0);
   for (auto line : chat_lines) {
     ImVec4 color = ImColor(255, 128, 64);
     ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -194,7 +199,7 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
     ImGui::TextWrapped("%s", line.c_str());
   }
   if (scroll_to_bottom) {
-    ImGui::SetScrollHere();
+    ImGui::SetScrollHereY();
     scroll_to_bottom = false;
   }
   ImGui::EndChild();
@@ -212,6 +217,7 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   self->enter_pressed = false;
 
   ImGui::End();
+  ImGui::PopStyleColor();
   ImGui::PopStyleVar();
 
   
