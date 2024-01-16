@@ -16,25 +16,22 @@
 const int LOW_CHAR = 32; // space
 const int HIGH_CHAR = 126+1; // tilde
 
-/* For each character in the font, I maintain the region of the
-   surface that stores it, as well as the position of the baseline and
-   the x-advance width. */
-struct FontCharacter {
-  SDL_Rect region;
-  int xadvance;   // how much x increases after drawing
-  int ybaseline;  // how far down into the region the baseline is
-};
-  
+// How many pixels to leave around each sprite
+const int PADDING = 4;
+
 struct FontImpl {
-  SDL_Surface* surface;
-  int baseline;
+  stbtt_fontinfo font;
+  SDL_Surface *surface;
   int height;
+  int atlas_width;
+  int atlas_height;
   std::vector<unsigned char> rendered_font;
-  std::vector<FontCharacter> mapping;
+  std::vector<stbtt_packedchar> chardata; // metrics
 };
 
 
-Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new FontImpl) {
+Font::Font(const char* filename, float pixelsize_, float xadvance_adjust)
+    : pixelsize(pixelsize_), self(new FontImpl) {
   // Load the font into memory
   std::vector<char> font_buffer;
   std::ifstream in(filename, std::ifstream::binary);
@@ -44,96 +41,119 @@ Font::Font(const char* filename, float ptsize, float xadvance_adjust): self(new 
   in.read(font_buffer.data(), font_buffer.size());
 
   // Use font metrics to determine how big I need to make the bitmap
-  int width = 0, height = int(ceil(ptsize));
-  self->height = int(ceil(height));
-  stbtt_fontinfo font;
-  stbtt_InitFont(&font, reinterpret_cast<unsigned char*>(font_buffer.data()), 0);
+
+  self->atlas_width = 0;
+  self->height = int(ceil(pixelsize));
+  self->atlas_height = self->height + 2 * PADDING;
+  stbtt_InitFont(&self->font, reinterpret_cast<unsigned char*>(font_buffer.data()), 0);
+  const float scale = stbtt_ScaleForPixelHeight(&self->font, pixelsize);
   for (char c = LOW_CHAR; c < HIGH_CHAR; c++) {
     int ix0, iy0, ix1, iy1;
-    stbtt_GetCodepointBitmapBox(&font, c, 1, 1, &ix0, &iy0, &ix1, &iy1);
-    // NOTE(amitp): I'm not 100% convinced this is always enough space
-    width += 1 + int(ceil(ix1 * ptsize / 1000.0) - floor(ix0 * ptsize / 1000.0));
+    stbtt_GetCodepointBitmapBox(&self->font, c, scale, scale,
+                                &ix0, &iy0, &ix1, &iy1);
+    self->atlas_width += ix1 - ix0 + 2 * PADDING;
   }
 
-  // HACK(amitp): Some fonts and some sizes seem to need a little more
-  // space here, for reasons I don't understand.
-  height += 5;
-  
   // Render the font into the bitmap
   std::vector<unsigned char> rendered_font_grayscale;
-  rendered_font_grayscale.resize(width * height);
-  
-  constexpr int N = HIGH_CHAR - LOW_CHAR;
-  stbtt_bakedchar chardata[N];
-  int r = stbtt_BakeFontBitmap(reinterpret_cast<unsigned char*>(font_buffer.data()),
-                               0, ptsize, rendered_font_grayscale.data(), width, height,
-                               LOW_CHAR, N, chardata);
-  if (r < 0) { FAIL("BakeFontBitmap not enough space"); }
-  self->mapping.resize(HIGH_CHAR);
-  self->baseline = 0;
-  for (int c = LOW_CHAR; c < HIGH_CHAR; c++) {
-    auto& M = self->mapping[c];
-    float x = 0.0, y = 0.0;
-    stbtt_aligned_quad q;
-    stbtt_GetBakedQuad(chardata, width, height, c-LOW_CHAR, &x, &y, &q, true);
-    M.region.x = int(floor(q.s0 * width));
-    M.region.y = int(floor(q.t0 * height));
-    M.region.w = int(ceil((q.s1 - q.s0) * width));
-    M.region.h = int(ceil((q.t1 - q.t0) * height));
-    M.xadvance = int(round(x + xadvance_adjust));
-    M.ybaseline = int(-q.y0);
-    self->baseline = std::max(self->baseline, M.ybaseline);
-  }
-  
-  // Copy the grayscale bitmap into RGBA
-  self->rendered_font.resize(width * height * 4);
+  rendered_font_grayscale.resize(self->atlas_width * self->atlas_height);
+
+  const int N = HIGH_CHAR - LOW_CHAR;
+  self->chardata.resize(HIGH_CHAR - LOW_CHAR);
+  stbtt_pack_context context;
+  stbtt_PackBegin(&context, rendered_font_grayscale.data(),
+                  self->atlas_width, self->atlas_height, 0, PADDING, nullptr);
+  int r = stbtt_PackFontRange(&context,
+                              reinterpret_cast<unsigned char*>(font_buffer.data()),
+                              0, pixelsize, LOW_CHAR, N, self->chardata.data());
+  if (r == 0) { FAIL("Font unable to fit on texture"); }
+  stbtt_PackEnd(&context);
+
+  // Copy the grayscale bitmap into RGBA, for SDL
+  self->rendered_font.resize(self->atlas_width * self->atlas_height * 4);
   for (unsigned i = 0; i < rendered_font_grayscale.size(); i++) {
     self->rendered_font[i*4    ] = 255;
     self->rendered_font[i*4 + 1] = 255;
     self->rendered_font[i*4 + 2] = 255;
     self->rendered_font[i*4 + 3] = rendered_font_grayscale[i];
   }
-  
+
   self->surface = SDL_CreateRGBSurfaceFrom(self->rendered_font.data(),
-                                           width, height,
-                                           32, width*4,
+                                           self->atlas_width, self->atlas_height,
+                                           32, self->atlas_width*4,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
                                            0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #else
                                            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #endif
-                                           );
+  );
 }
 
 
 Font::~Font() {}
 
 
-void Font::Draw(SDL_Surface* surface, int x, int y, const char* text) const {
-  SDL_Rect dest;
-  dest.x = x;
+void Font::Draw(SDL_Surface *surface, int x, int y, const char* text) const {
+  const float scale = stbtt_ScaleForPixelHeight(&self->font, pixelsize);
+  float offset_x = x, offset_y = y;
+  stbtt_aligned_quad quad;
   for (const char* s = text; *s != '\0'; s++) {
-    FontCharacter loc = self->mapping[*s];
-    dest.y = y - loc.ybaseline;
-    SDL_BlitSurface(self->surface, &loc.region, surface, &dest);
-    dest.x += loc.xadvance;
-    // TODO: kerning with stbtt_GetCodepointKernAdvance(&font, s[0], s[1])
+    int char_index = *s - LOW_CHAR;
+    if (char_index < 0 || char_index >= int(self->chardata.size())) {
+      FAIL("Tried to render character out of range");
+    }
+    stbtt_GetPackedQuad(self->chardata.data(), self->atlas_width, self->atlas_height,
+                        char_index, &offset_x, &offset_y, &quad,
+                        0);
+
+    SDL_Rect src;
+    src.x = int(round(quad.s0 * self->atlas_width));
+    src.y = int(round(quad.t0 * self->atlas_height));
+    src.w = int(round((quad.s1 - quad.s0) * self->atlas_width));
+    src.h = int(round((quad.t1 - quad.t0) * self->atlas_height));
+
+    SDL_Rect dest;
+    dest.x = int(floor(quad.x0));
+    dest.y = int(floor(quad.y0));
+    dest.w = int(ceil(quad.x1 - quad.x0));
+    dest.h = int(ceil(quad.y1 - quad.y0));
+
+    if (SDL_BlitSurface(self->surface, &src, surface, &dest) < 0) {
+      FAIL("Blit character");
+    }
+
+    if (s[1]) {
+      offset_x += scale * stbtt_GetCodepointKernAdvance(&self->font, s[0], s[1]);
+    }
   }
 }
 
+int Font::Width(const char* text) const {
+  const float scale = stbtt_ScaleForPixelHeight(&self->font, pixelsize);
+  float offset_x = 0.0, offset_y = 0.0;
+  stbtt_aligned_quad quad;
+  for (const char* s = text; *s != '\0'; s++) {
+    int char_index = *s - LOW_CHAR;
+    if (char_index < 0 || char_index >= int(self->chardata.size())) {
+      FAIL("Tried to render character out of range");
+    }
+    stbtt_GetPackedQuad(self->chardata.data(), self->atlas_width, self->atlas_height,
+                        char_index, &offset_x, &offset_y, &quad,
+                        0);
+    if (s[1]) {
+      offset_x += scale * stbtt_GetCodepointKernAdvance(&self->font, s[0], s[1]);
+    }
+  }
+  return int(ceil(offset_x));
+}
 
 int Font::Height() const {
   return self->height;
 }
 
 int Font::Baseline() const {
-  return self->baseline;
-}
-
-int Font::Width(const char* text) const {
-  int width = 0;
-  for (const char* s = text; *s != '\0'; s++) {
-    width += self->mapping[*s].xadvance;
-  }
-  return width;
+  const float scale = stbtt_ScaleForPixelHeight(&self->font, pixelsize);
+  int x0, y0, x1, y1;
+  stbtt_GetFontBoundingBox(&self->font, &x0, &y0, &x1, &y1);
+  return int(pixelsize + ceil(scale * y0));
 }
