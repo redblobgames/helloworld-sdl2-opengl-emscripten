@@ -158,8 +158,7 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
 
   // The uniforms are data that will be the same for all records. The
   // attributes are data in each record. TODO: export camera
-  GLfloat u_camera_position[2] = { 0, 0 };
-  glUniform2fv(self->loc_u_camera_position, 1, u_camera_position);
+  glUniform2f(self->loc_u_camera_position, 0, 0);
 
   // Rescale from world coordinates to OpenGL coordinates. We can
   // either choose for the world coordinates to have Y increasing
@@ -169,11 +168,11 @@ void RenderSprites::Render(SDL_Window* window, bool reset) {
   int sdl_window_width, sdl_window_height;
   SDL_GL_GetDrawableSize(window, &sdl_window_width, &sdl_window_height);
   float sdl_window_size = std::min(sdl_window_height, sdl_window_width);
-  GLfloat u_camera_scale[2] = { sdl_window_size / sdl_window_width,
-                                -sdl_window_size / sdl_window_height };
-  glUniform2fv(self->loc_u_camera_scale, 1, u_camera_scale);
+  glUniform2f(self->loc_u_camera_scale,
+              sdl_window_size / sdl_window_width,
+              -sdl_window_size / sdl_window_height);
   
-  GLERRORS("glUniform2fv");
+  GLERRORS("glUniform2f");
 
   // Textures have an id and also a register (0 in this
   // case). We have to bind register 0 to the texture id:
