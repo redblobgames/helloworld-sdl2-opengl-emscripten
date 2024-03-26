@@ -152,6 +152,7 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   io.KeyShift = (SDL_GetModState() & KMOD_SHIFT) != 0;
   io.KeyCtrl = (SDL_GetModState() & KMOD_CTRL) != 0;
   io.KeyAlt = (SDL_GetModState() & KMOD_ALT) != 0;
+  io.KeySuper = (SDL_GetModState() & KMOD_GUI) != 0;
 
   // Time since last frame:
   uint32_t new_timestamp = SDL_GetTicks();
