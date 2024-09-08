@@ -105,9 +105,6 @@ void RenderSprites::SetSprites(const std::vector<Sprite>& sprites) {
   auto& vertices = self->vertices;
   auto& indices = self->indices;
   
-  static float t = 0.0;
-  t += 0.01f;
-
   int N = sprites.size();
   vertices.resize(N * 4);
   for (int j = 0; j < N; j++) {

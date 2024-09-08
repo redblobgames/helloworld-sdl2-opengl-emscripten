@@ -44,18 +44,18 @@ git submodule update
 To run the native code:
 
 #+begin_src sh
-make && bin/main
+make local && bin/main
 #+end_src
 
 To run the emscripten code: (~brew install emscripten~ on Mac, ~pacman -S emscripten~ on Arch Linux):
 
 #+begin_src sh
-make www
+make emscripten
 #+end_src
 
 and then tell the webserver to serve the files from =www/=.
 
-My Emscripten-ed wasm output is [[https://www.redblobgames.com/x/1535/][on my web site]].
+My Emscripten-ed wasm output is [[https://www.redblobgames.com/x/1535-opengl-emscripten/helloworld/][on my web site]].
 
 I've also written a partial =CMakeLists.txt= file but am not using it yet.
 

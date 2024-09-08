@@ -37,9 +37,17 @@ EMXXFLAGS = $(COMMONFLAGS) -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2
 # -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
 EMXXLINK = -s TOTAL_MEMORY=50331648 --use-preload-plugins
 
-all: $(BINDIR)/main
+help:
+	@echo "Make targets:"
+	@echo "  make local"
+	@echo "  make emscripten"
+	@echo "  make all"
 
-$(WWWDIR): $(WWWDIR)/index.html $(WWWDIR)/_main.js
+all: local emscripten
+
+local: $(BINDIR)/main
+
+emscripten: $(WWWDIR)/index.html $(WWWDIR)/_main.js
 
 $(BINDIR)/main: $(MODULES:%=$(BUILDDIR)/%.o) Makefile
 	$(CXX) $(LOCALFLAGS) $(filter %.o,$^) $(LOCALLIBS) -o $@

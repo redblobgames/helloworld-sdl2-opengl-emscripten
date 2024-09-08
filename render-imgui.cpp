@@ -173,7 +173,7 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   
   // Chat window
   int chat_window_width = 500, chat_window_height = 200;
-  static std::vector<std::string> chat_lines { "Welcome to chat" };
+  static std::vector<std::string> chat_lines { "Welcome to chat. Press Enter to toggle focus." };
   static bool scroll_to_bottom = false;
   ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - chat_window_height));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
