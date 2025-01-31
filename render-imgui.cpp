@@ -2,16 +2,17 @@
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
 #include "render-imgui.h"
-#include "window.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include "SDL_scancode.h"
 #include "glwrappers.h"
 
 #include <imgui/imgui.h>
 
 #include <vector>
 
+#define SHOW_INPUT 1
 
 struct RenderImGuiImpl {
   ShaderProgram shader;
@@ -21,7 +22,10 @@ struct RenderImGuiImpl {
   uint32_t timestamp;
   bool mouse_button_pressed;
   bool enter_pressed;
-  
+
+  SDL_Scancode most_recent_scancode = SDL_SCANCODE_UNKNOWN;
+  SDL_Keycode most_recent_keycode;
+
   GLint loc_u_screensize;
   GLint loc_u_texture;
   GLint loc_a_xy;
@@ -161,13 +165,51 @@ void RenderImGui::Render(SDL_Window* window, bool reset) {
   
   ImGui::NewFrame();
   
-  ImGui::SetNextWindowPos(ImVec2(0, 50));
-  ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowPos(ImVec2(0, 40));
+  ImGui::SetNextWindowSize(ImVec2(400, 70 + 50 * SHOW_INPUT), ImGuiCond_FirstUseEver);
   ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f));
   ImGui::Begin("Status", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
   // TODO: GUI should be defined elsewhere
-  ImGui::Text("Hello %d %d %d", io.WantCaptureMouse, io.WantCaptureKeyboard, io.WantTextInput);
+  ImGui::Text("Hello from SDL %d.%d.%d ImGui %s",
+              SDL_MAJOR_VERSION,
+              SDL_MINOR_VERSION,
+              SDL_PATCHLEVEL,
+              IMGUI_VERSION
+              );
   ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+#if SHOW_INPUT
+  ImGui::Text("  capturemouse=%d capturekeyboard=%d textinput=%d",
+              io.WantCaptureMouse,
+              io.WantCaptureKeyboard,
+              io.WantTextInput
+              );
+  // For localization of keyboard layouts, there's a "scan code"
+  // indicating the physical position of the key and a "key code"
+  // which is the label on that key. For games we often want a scan
+  // code, e.g. 0x01a for "W" in "WASD". But to display the label
+  // in the UI, we want to show the key name. SDL provides functions
+  // to go from scan code to key code to key name. I put this here
+  // to test those functions. Locally, it works fine. But *on the web*
+  // a key event contains the correct keycode, but you cannot get the
+  // keycode outside an event. There is a browser-specific API
+  // https://developer.mozilla.org/en-US/docs/Web/API/Keyboard_API
+  // that lets you get that information, but only supported on Blink.
+  // SDL 2.30 does not appear to use that API.
+  if (self->most_recent_scancode != SDL_SCANCODE_UNKNOWN) {
+    ImGui::Text("with event: scancode 0x%03x key %d becomes key %d (%s)",
+                self->most_recent_scancode,
+                self->most_recent_keycode,
+                SDL_GetKeyFromScancode(self->most_recent_scancode) & ~SDLK_SCANCODE_MASK,
+                SDL_GetKeyName(self->most_recent_keycode)
+                );
+  }
+  ImGui::Text("without event: scancode 0x01a becomes key = %d (%s)",
+              SDL_GetKeyFromScancode(SDL_Scancode(0x1a)) & ~SDLK_SCANCODE_MASK,
+              SDL_GetKeyName(SDL_GetKeyFromScancode(SDL_Scancode(0x1a)))
+              );
+#endif
+
   ImGui::End();
   ImGui::PopStyleColor();
   
@@ -323,6 +365,8 @@ void RenderImGui::ProcessEvent(SDL_Event* event) {
   case SDL_KEYDOWN: case SDL_KEYUP: {
     int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
     io.KeysDown[key] = (event->type == SDL_KEYDOWN);
+    self->most_recent_keycode = key;
+    self->most_recent_scancode = event->key.keysym.scancode;
     if (event->type == SDL_KEYDOWN && key == SDLK_RETURN) {
       // Used to activate the chat box; TODO: this should be part of
       // the chat box module and not the render-imgui module

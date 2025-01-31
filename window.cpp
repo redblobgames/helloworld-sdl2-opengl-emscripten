@@ -32,7 +32,7 @@ Window::Window(int width_, int height_)
                             SDL_WINDOWPOS_UNDEFINED,
                             width,
                             height,
-                            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+                            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
                            )))
 {
   HandleResize();
