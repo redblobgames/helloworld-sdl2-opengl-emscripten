@@ -14,21 +14,21 @@ struct RenderSpritesImpl;
 const float DEG_TO_RAD = 3.141592653589793f / 180.0f;
 
 struct Sprite {
-  int image_id;
-  float x, y, rotation_degrees, scale;
+    int image_id;
+    float x, y, rotation_degrees, scale;
 };
 
 
 class RenderSprites: public IRenderLayer {
-public:
-  RenderSprites();
-  ~RenderSprites();
-  virtual void Render(SDL_Window* window, bool reset);
+    public:
+    RenderSprites();
+    ~RenderSprites();
+    virtual void Render(SDL_Window* window, bool reset);
 
-  void SetSprites(const std::vector<Sprite>& sprites);
+    void SetSprites(const std::vector<Sprite>& sprites);
   
-protected:
-  std::unique_ptr<RenderSpritesImpl> self;
+    protected:
+    std::unique_ptr<RenderSpritesImpl> self;
 };
 
 

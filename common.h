@@ -12,9 +12,9 @@ void FAIL(const char* label);
 
 // Put on classes that manage resources and aren't to be copied
 struct nocopy {
-  nocopy() = default;
-  nocopy(const nocopy&) = delete;
-  nocopy& operator = (const nocopy&) = delete;
+    nocopy() = default;
+    nocopy(const nocopy&) = delete;
+    nocopy& operator = (const nocopy&) = delete;
 };
 
 #endif

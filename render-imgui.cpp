@@ -15,31 +15,31 @@
 #define SHOW_INPUT 1
 
 struct RenderImGuiImpl {
-  ShaderProgram shader;
-  Texture font_texture;
-  VertexBuffer vbo, ibo;
+    ShaderProgram shader;
+    Texture font_texture;
+    VertexBuffer vbo, ibo;
 
-  uint32_t timestamp;
-  bool mouse_button_pressed;
-  bool enter_pressed;
+    uint32_t timestamp;
+    bool mouse_button_pressed;
+    bool enter_pressed;
 
-  SDL_Scancode most_recent_scancode = SDL_SCANCODE_UNKNOWN;
-  SDL_Keycode most_recent_keycode;
+    SDL_Scancode most_recent_scancode = SDL_SCANCODE_UNKNOWN;
+    SDL_Keycode most_recent_keycode;
 
-  GLint loc_u_screensize;
-  GLint loc_u_texture;
-  GLint loc_a_xy;
-  GLint loc_a_uv;
-  GLint loc_a_rgba;
+    GLint loc_u_screensize;
+    GLint loc_u_texture;
+    GLint loc_a_xy;
+    GLint loc_a_uv;
+    GLint loc_a_rgba;
   
-  RenderImGuiImpl();
-  ~RenderImGuiImpl();
+    RenderImGuiImpl();
+    ~RenderImGuiImpl();
 };
 
 
 namespace {
-  const char* Wrap_SDL_GetClipboardText(void*) { return SDL_GetClipboardText(); }
-  void Wrap_SDL_SetClipboardText(void*, const char* s) { SDL_SetClipboardText(s); }
+    const char* Wrap_SDL_GetClipboardText(void*) { return SDL_GetClipboardText(); }
+    void Wrap_SDL_SetClipboardText(void*, const char* s) { SDL_SetClipboardText(s); }
 }
 
 
@@ -76,7 +76,7 @@ RenderImGui::~RenderImGui() {
 
 // Shader program for drawing a single quad
 namespace {
-  GLchar vertex_shader[] = R"(
+    GLchar vertex_shader[] = R"(
   uniform vec2 u_screensize;
   attribute vec2 a_xy;
   attribute vec2 a_uv;
@@ -90,7 +90,7 @@ namespace {
   }
 )";
 
-  GLchar fragment_shader[] = R"(
+    GLchar fragment_shader[] = R"(
   uniform sampler2D u_texture;
   varying vec2 v_uv;
   varying vec4 v_rgba;
@@ -102,10 +102,10 @@ namespace {
 
 
 RenderImGuiImpl::RenderImGuiImpl()
-  : shader(vertex_shader, fragment_shader),
-    timestamp(SDL_GetTicks()),
-    mouse_button_pressed(false),
-    enter_pressed(false)
+    : shader(vertex_shader, fragment_shader),
+      timestamp(SDL_GetTicks()),
+      mouse_button_pressed(false),
+      enter_pressed(false)
 {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -129,250 +129,252 @@ RenderImGuiImpl::RenderImGuiImpl()
 
 
 RenderImGuiImpl::~RenderImGuiImpl() {
-  ImGui::DestroyContext();
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
 }
 
 
 void RenderImGui::Render(SDL_Window* window, bool reset) {
-  ImGuiIO& io = ImGui::GetIO();
-  int width, height, fb_width, fb_height;
-  SDL_GetWindowSize(window, &width, &height);
-  SDL_GL_GetDrawableSize(window, &fb_width, &fb_height);
-  io.DisplaySize.x = width;
-  io.DisplaySize.y = height;
-  io.DisplayFramebufferScale.x = float(fb_width) / width;
-  io.DisplayFramebufferScale.y = float(fb_height) / height;
+    ImGuiIO& io = ImGui::GetIO();
+    int width, height, fb_width, fb_height;
+    SDL_GetWindowSize(window, &width, &height);
+    SDL_GL_GetDrawableSize(window, &fb_width, &fb_height);
+    io.DisplaySize.x = width;
+    io.DisplaySize.y = height;
+    io.DisplayFramebufferScale.x = float(fb_width) / width;
+    io.DisplayFramebufferScale.y = float(fb_height) / height;
 
-  // Pointer handling, in addition to event handler:
-  if ((SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS) == 0) {
-    io.MousePos = ImVec2(-1, -1);
-  }
-  Uint32 mouseMask = SDL_GetMouseState(nullptr, nullptr);
-  io.MouseDown[0] = self->mouse_button_pressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-  self->mouse_button_pressed = false;
-  SDL_ShowCursor(io.MouseDrawCursor ? 0 : 1);
+    // Pointer handling, in addition to event handler:
+    if ((SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS) == 0) {
+        io.MousePos = ImVec2(-1, -1);
+    }
+    Uint32 mouseMask = SDL_GetMouseState(nullptr, nullptr);
+    io.MouseDown[0] = self->mouse_button_pressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+    self->mouse_button_pressed = false;
+    SDL_ShowCursor(io.MouseDrawCursor ? 0 : 1);
   
-  // Keyboard handling, in addition to event handler:
-  io.KeyShift = (SDL_GetModState() & KMOD_SHIFT) != 0;
-  io.KeyCtrl = (SDL_GetModState() & KMOD_CTRL) != 0;
-  io.KeyAlt = (SDL_GetModState() & KMOD_ALT) != 0;
-  io.KeySuper = (SDL_GetModState() & KMOD_GUI) != 0;
+    // Keyboard handling, in addition to event handler:
+    io.KeyShift = (SDL_GetModState() & KMOD_SHIFT) != 0;
+    io.KeyCtrl = (SDL_GetModState() & KMOD_CTRL) != 0;
+    io.KeyAlt = (SDL_GetModState() & KMOD_ALT) != 0;
+    io.KeySuper = (SDL_GetModState() & KMOD_GUI) != 0;
 
-  // Time since last frame:
-  uint32_t new_timestamp = SDL_GetTicks();
-  io.DeltaTime = (new_timestamp - self->timestamp) / 1000.0f;
-  self->timestamp = new_timestamp;
+    // Time since last frame:
+    uint32_t new_timestamp = SDL_GetTicks();
+    io.DeltaTime = (new_timestamp - self->timestamp) / 1000.0f;
+    self->timestamp = new_timestamp;
   
-  ImGui::NewFrame();
+    ImGui::NewFrame();
   
-  ImGui::SetNextWindowPos(ImVec2(0, 40));
-  ImGui::SetNextWindowSize(ImVec2(400, 70 + 50 * SHOW_INPUT), ImGuiCond_FirstUseEver);
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f));
-  ImGui::Begin("Status", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-  // TODO: GUI should be defined elsewhere
-  ImGui::Text("Hello from SDL %d.%d.%d ImGui %s",
-              SDL_MAJOR_VERSION,
-              SDL_MINOR_VERSION,
-              SDL_PATCHLEVEL,
-              IMGUI_VERSION
-              );
-  ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::SetNextWindowPos(ImVec2(0, 40));
+    ImGui::SetNextWindowSize(ImVec2(400, 70 + 50 * SHOW_INPUT), ImGuiCond_FirstUseEver);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f));
+    ImGui::Begin("Status", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    // TODO: GUI should be defined elsewhere
+    ImGui::Text("Hello from SDL %d.%d.%d ImGui %s",
+                SDL_MAJOR_VERSION,
+                SDL_MINOR_VERSION,
+                SDL_PATCHLEVEL,
+                IMGUI_VERSION
+               );
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 #if SHOW_INPUT
-  ImGui::Text("  capturemouse=%d capturekeyboard=%d textinput=%d",
-              io.WantCaptureMouse,
-              io.WantCaptureKeyboard,
-              io.WantTextInput
-              );
-  // For localization of keyboard layouts, there's a "scan code"
-  // indicating the physical position of the key and a "key code"
-  // which is the label on that key. For games we often want a scan
-  // code, e.g. 0x01a for "W" in "WASD". But to display the label
-  // in the UI, we want to show the key name. SDL provides functions
-  // to go from scan code to key code to key name. I put this here
-  // to test those functions. Locally, it works fine. But *on the web*
-  // a key event contains the correct keycode, but you cannot get the
-  // keycode outside an event. There is a browser-specific API
-  // https://developer.mozilla.org/en-US/docs/Web/API/Keyboard_API
-  // that lets you get that information, but only supported on Blink.
-  // SDL 2.30 does not appear to use that API.
-  if (self->most_recent_scancode != SDL_SCANCODE_UNKNOWN) {
-    ImGui::Text("with event: scancode 0x%03x key %d becomes key %d (%s)",
-                self->most_recent_scancode,
-                self->most_recent_keycode,
-                SDL_GetKeyFromScancode(self->most_recent_scancode) & ~SDLK_SCANCODE_MASK,
-                SDL_GetKeyName(self->most_recent_keycode)
-                );
-  }
-  ImGui::Text("without event: scancode 0x01a becomes key = %d (%s)",
-              SDL_GetKeyFromScancode(SDL_Scancode(0x1a)) & ~SDLK_SCANCODE_MASK,
-              SDL_GetKeyName(SDL_GetKeyFromScancode(SDL_Scancode(0x1a)))
-              );
+    ImGui::Text("  capturemouse=%d capturekeyboard=%d textinput=%d",
+                io.WantCaptureMouse,
+                io.WantCaptureKeyboard,
+                io.WantTextInput
+               );
+    // For localization of keyboard layouts, there's a "scan code"
+    // indicating the physical position of the key and a "key code"
+    // which is the label on that key. For games we often want a scan
+    // code, e.g. 0x01a for "W" in "WASD". But to display the label
+    // in the UI, we want to show the key name. SDL provides functions
+    // to go from scan code to key code to key name. I put this here
+    // to test those functions. Locally, it works fine. But *on the web*
+    // a key event contains the correct keycode, but you cannot get the
+    // keycode outside an event. There is a browser-specific API
+    // https://developer.mozilla.org/en-US/docs/Web/API/Keyboard_API
+    // that lets you get that information, but only supported on Blink.
+    // SDL 2.30 does not appear to use that API.
+    if (self->most_recent_scancode != SDL_SCANCODE_UNKNOWN) {
+        ImGui::Text("with event: scancode 0x%03x key %d becomes key %d (%s)",
+                    self->most_recent_scancode,
+                    self->most_recent_keycode,
+                    SDL_GetKeyFromScancode(self->most_recent_scancode) & ~SDLK_SCANCODE_MASK,
+                    SDL_GetKeyName(self->most_recent_keycode)
+                   );
+    }
+    ImGui::Text("without event: scancode 0x01a becomes key = %d (%s)",
+                SDL_GetKeyFromScancode(SDL_Scancode(0x1a)) & ~SDLK_SCANCODE_MASK,
+                SDL_GetKeyName(SDL_GetKeyFromScancode(SDL_Scancode(0x1a)))
+               );
 #endif
 
-  ImGui::End();
-  ImGui::PopStyleColor();
-  
-  // Chat window
-  int chat_window_width = 500, chat_window_height = 200;
-  static std::vector<std::string> chat_lines { "Welcome to chat. Press Enter to toggle focus." };
-  static bool scroll_to_bottom = false;
-  ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - chat_window_height));
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-
-  ImGuiStyle& style = ImGui::GetStyle();
-  style.WindowRounding = 0.0;
-  style.Colors[ImGuiCol_TitleBg] = ImColor::HSV(0, 0.5f, 0.5f);
-  style.Colors[ImGuiCol_TitleBgActive] = ImColor::HSV(0, 0.7f, 0.5f);
-  style.Colors[ImGuiCol_TitleBgCollapsed] = ImColor::HSV(0, 0.3f, 0.5f);
-  style.Colors[ImGuiCol_ScrollbarGrab] = ImColor::HSV(0, 0.3f, 0.5f);
-  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5f, 0.8f);
-  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7f, 0.5f);
-
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, io.WantTextInput ? 1.0f : 0.7f));
-  ImGui::SetNextWindowSize(ImVec2(chat_window_width, chat_window_height), ImGuiCond_FirstUseEver);
-  ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
-  ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvail().x, chat_window_height - 50), false, 0);
-  for (auto line : chat_lines) {
-    ImVec4 color = ImColor(255, 128, 64);
-    ImGui::PushStyleColor(ImGuiCol_Text, color);
-    ImGui::Text("[chat]");
+    ImGui::End();
     ImGui::PopStyleColor();
-    ImGui::SameLine();
-    ImGui::TextWrapped("%s", line.c_str());
-  }
-  if (scroll_to_bottom) {
-    ImGui::SetScrollHereY();
-    scroll_to_bottom = false;
-  }
-  ImGui::EndChild();
-  ImGui::Separator();
-  static char input[100] = "";
-  ImGui::PushItemWidth(500);
-
-  if (ImGui::InputText("Send", input, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
-    if (input[0] != '\0') { chat_lines.push_back(input); }
-    scroll_to_bottom = true;
-    input[0] = '\0';
-  } else if (!io.WantTextInput && self->enter_pressed) {
-    ImGui::SetKeyboardFocusHere(-1);
-  }
-  self->enter_pressed = false;
-
-  ImGui::End();
-  ImGui::PopStyleColor();
-  ImGui::PopStyleVar();
-
   
-  static bool g_show_test_window = true;
-  if (g_show_test_window) { ImGui::ShowDemoWindow(&g_show_test_window); }
+    // Chat window
+    int chat_window_width = 500, chat_window_height = 200;
+    static std::vector<std::string> chat_lines { "Welcome to chat. Press Enter to toggle focus." };
+    static bool scroll_to_bottom = false;
+    ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - chat_window_height));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
-  
-  ImGui::Render();
-  ImDrawData* draw_data = ImGui::GetDrawData();
-  draw_data->ScaleClipRects(io.DisplayFramebufferScale);
-  
-  glUseProgram(self->shader.id);
-  glEnable(GL_SCISSOR_TEST);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glActiveTexture(GL_TEXTURE0);
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.WindowRounding = 0.0;
+    style.Colors[ImGuiCol_TitleBg] = ImColor::HSV(0, 0.5f, 0.5f);
+    style.Colors[ImGuiCol_TitleBgActive] = ImColor::HSV(0, 0.7f, 0.5f);
+    style.Colors[ImGuiCol_TitleBgCollapsed] = ImColor::HSV(0, 0.3f, 0.5f);
+    style.Colors[ImGuiCol_ScrollbarGrab] = ImColor::HSV(0, 0.3f, 0.5f);
+    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5f, 0.8f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7f, 0.5f);
 
-  GLfloat screensize[2] = {1.0f*width, 1.0f*height};
-  glUniform2fv(self->loc_u_screensize, 1, screensize);
-  glUniform1i(self->loc_u_texture, 0);
-    
-  glBindBuffer(GL_ARRAY_BUFFER, self->vbo.id);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->ibo.id);
-    
-  glVertexAttribPointer(self->loc_a_xy,
-                        2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                        reinterpret_cast<GLvoid*>(offsetof(ImDrawVert, pos)));
-  glVertexAttribPointer(self->loc_a_uv,
-                        2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                        reinterpret_cast<GLvoid*>(offsetof(ImDrawVert, uv)));
-  glVertexAttribPointer(self->loc_a_rgba,
-                        4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert),
-                        reinterpret_cast<GLvoid*>(offsetof(ImDrawVert, col)));
-
-  glEnableVertexAttribArray(self->loc_a_xy);
-  glEnableVertexAttribArray(self->loc_a_uv);
-  glEnableVertexAttribArray(self->loc_a_rgba);
-  
-  for (int n = 0; n < draw_data->CmdListsCount; n++) {
-    const ImDrawList* cmd_list = draw_data->CmdLists[n];
-    const ImDrawIdx* idx_buffer_offset = 0;
-
-    glBufferData(GL_ARRAY_BUFFER,
-                 cmd_list->VtxBuffer.size() * sizeof(ImDrawVert),
-                 &cmd_list->VtxBuffer.front(), GL_STREAM_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx),
-                 &cmd_list->IdxBuffer.front(), GL_STREAM_DRAW);
-
-    for (const ImDrawCmd* pcmd = cmd_list->CmdBuffer.begin(); pcmd != cmd_list->CmdBuffer.end(); pcmd++) {
-      if (pcmd->UserCallback) {
-        pcmd->UserCallback(cmd_list, pcmd);
-      } else {
-        glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
-        glScissor(int(pcmd->ClipRect.x),
-                  fb_height - int(pcmd->ClipRect.w),
-                  int(pcmd->ClipRect.z - pcmd->ClipRect.x),
-                  int(pcmd->ClipRect.w - pcmd->ClipRect.y));
-        glDrawElements(GL_TRIANGLES, pcmd->ElemCount, GL_UNSIGNED_SHORT, idx_buffer_offset);
-      }
-      idx_buffer_offset += pcmd->ElemCount;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, io.WantTextInput ? 1.0f : 0.7f));
+    ImGui::SetNextWindowSize(ImVec2(chat_window_width, chat_window_height), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
+    ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvail().x, chat_window_height - 50), false, 0);
+    for (auto line : chat_lines) {
+        ImVec4 color = ImColor(255, 128, 64);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        ImGui::Text("[chat]");
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        ImGui::TextWrapped("%s", line.c_str());
     }
-  }
+    if (scroll_to_bottom) {
+        ImGui::SetScrollHereY();
+        scroll_to_bottom = false;
+    }
+    ImGui::EndChild();
+    ImGui::Separator();
+    static char input[100] = "";
+    ImGui::PushItemWidth(500);
+
+    if (ImGui::InputText("Send", input, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (input[0] != '\0') { chat_lines.push_back(input); }
+        scroll_to_bottom = true;
+        input[0] = '\0';
+    } else if (!io.WantTextInput && self->enter_pressed) {
+        ImGui::SetKeyboardFocusHere(-1);
+    }
+    self->enter_pressed = false;
+
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+
   
-  glDisableVertexAttribArray(self->loc_a_rgba);
-  glDisableVertexAttribArray(self->loc_a_uv);
-  glDisableVertexAttribArray(self->loc_a_xy);
-  glDisable(GL_BLEND);
-  glDisable(GL_SCISSOR_TEST);
+    static bool g_show_test_window = true;
+    if (g_show_test_window) { ImGui::ShowDemoWindow(&g_show_test_window); }
+
+  
+    ImGui::Render();
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    draw_data->ScaleClipRects(io.DisplayFramebufferScale);
+  
+    glUseProgram(self->shader.id);
+    glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+
+    GLfloat screensize[2] = {1.0f*width, 1.0f*height};
+    glUniform2fv(self->loc_u_screensize, 1, screensize);
+    glUniform1i(self->loc_u_texture, 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, self->vbo.id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->ibo.id);
+    
+    glVertexAttribPointer(self->loc_a_xy,
+                          2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
+                          reinterpret_cast<GLvoid*>(offsetof(ImDrawVert, pos)));
+    glVertexAttribPointer(self->loc_a_uv,
+                          2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
+                          reinterpret_cast<GLvoid*>(offsetof(ImDrawVert, uv)));
+    glVertexAttribPointer(self->loc_a_rgba,
+                          4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert),
+                          reinterpret_cast<GLvoid*>(offsetof(ImDrawVert, col)));
+
+    glEnableVertexAttribArray(self->loc_a_xy);
+    glEnableVertexAttribArray(self->loc_a_uv);
+    glEnableVertexAttribArray(self->loc_a_rgba);
+  
+    for (int n = 0; n < draw_data->CmdListsCount; n++) {
+        const ImDrawList* cmd_list = draw_data->CmdLists[n];
+        const ImDrawIdx* idx_buffer_offset = 0;
+
+        glBufferData(GL_ARRAY_BUFFER,
+                     cmd_list->VtxBuffer.size() * sizeof(ImDrawVert),
+                     &cmd_list->VtxBuffer.front(), GL_STREAM_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx),
+                     &cmd_list->IdxBuffer.front(), GL_STREAM_DRAW);
+
+        for (const ImDrawCmd* pcmd = cmd_list->CmdBuffer.begin(); pcmd != cmd_list->CmdBuffer.end(); pcmd++) {
+            if (pcmd->UserCallback) {
+                pcmd->UserCallback(cmd_list, pcmd);
+            } else {
+                glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
+                glScissor(int(pcmd->ClipRect.x),
+                          fb_height - int(pcmd->ClipRect.w),
+                          int(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                          int(pcmd->ClipRect.w - pcmd->ClipRect.y));
+                glDrawElements(GL_TRIANGLES, pcmd->ElemCount, GL_UNSIGNED_SHORT, idx_buffer_offset);
+            }
+            idx_buffer_offset += pcmd->ElemCount;
+        }
+    }
+  
+    glDisableVertexAttribArray(self->loc_a_rgba);
+    glDisableVertexAttribArray(self->loc_a_uv);
+    glDisableVertexAttribArray(self->loc_a_xy);
+    glDisable(GL_BLEND);
+    glDisable(GL_SCISSOR_TEST);
 }
 
 
 void RenderImGui::ProcessEvent(SDL_Event* event) {
-  ImGuiIO& io = ImGui::GetIO();
-  switch (event->type) {
-  case SDL_MOUSEMOTION: {
-    io.MousePos.x = event->motion.x;
-    io.MousePos.y = event->motion.y;
-    break;
-  }
-  case SDL_MOUSEBUTTONDOWN: {
-    // NOTE: I'm only handling left button here because that's all
-    // ImGui uses for its standard widgets. It'd be simpler to set
-    // io.MouseDown to true on SDL_MOUSEBUTTONDOWN and false on
-    // SDL_MOUSEBUTTONUP. However, because ImGui is polling instead of
-    // event-driven, it will miss a quick click. The workaround is to
-    // set mouse_button_pressed if it's ever clicked during the frame, and
-    // *also* check if the mouse is down at the end of the frame.
-    if (event->button.button == SDL_BUTTON_LEFT) {
-      self->mouse_button_pressed = true;
+    ImGuiIO& io = ImGui::GetIO();
+    switch (event->type) {
+    case SDL_MOUSEMOTION: {
+        io.MousePos.x = event->motion.x;
+        io.MousePos.y = event->motion.y;
+        break;
     }
-    break;
-  }
-  case SDL_MOUSEWHEEL: {
-    io.MouseWheel += event->wheel.y;
-    break;
-  }
-  case SDL_TEXTINPUT: {
-    io.AddInputCharactersUTF8(event->text.text);
-    break;
-  }
-  case SDL_KEYDOWN: case SDL_KEYUP: {
-    int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
-    io.KeysDown[key] = (event->type == SDL_KEYDOWN);
-    self->most_recent_keycode = key;
-    self->most_recent_scancode = event->key.keysym.scancode;
-    if (event->type == SDL_KEYDOWN && key == SDLK_RETURN) {
-      // Used to activate the chat box; TODO: this should be part of
-      // the chat box module and not the render-imgui module
-      self->enter_pressed = true;
+    case SDL_MOUSEBUTTONDOWN: {
+        // NOTE: I'm only handling left button here because that's all
+        // ImGui uses for its standard widgets. It'd be simpler to set
+        // io.MouseDown to true on SDL_MOUSEBUTTONDOWN and false on
+        // SDL_MOUSEBUTTONUP. However, because ImGui is polling instead of
+        // event-driven, it will miss a quick click. The workaround is to
+        // set mouse_button_pressed if it's ever clicked during the frame, and
+        // *also* check if the mouse is down at the end of the frame.
+        if (event->button.button == SDL_BUTTON_LEFT) {
+            self->mouse_button_pressed = true;
+        }
+        break;
     }
-    break;
-  }
-  }
+    case SDL_MOUSEWHEEL: {
+        io.MouseWheel += event->wheel.y;
+        break;
+    }
+    case SDL_TEXTINPUT: {
+        io.AddInputCharactersUTF8(event->text.text);
+        break;
+    }
+    case SDL_KEYDOWN: case SDL_KEYUP: {
+        int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
+        io.KeysDown[key] = (event->type == SDL_KEYDOWN);
+        self->most_recent_keycode = key;
+        self->most_recent_scancode = event->key.keysym.scancode;
+        if (event->type == SDL_KEYDOWN && key == SDLK_RETURN) {
+            // Used to activate the chat box; TODO: this should be part of
+            // the chat box module and not the render-imgui module
+            self->enter_pressed = true;
+        }
+        break;
+    }
+    }
 }

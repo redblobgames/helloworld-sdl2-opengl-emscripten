@@ -12,19 +12,19 @@ union SDL_Event;
 struct WindowImpl;
 
 class Window {
-public:
-  Window(int width, int height);
-  ~Window();
-  void Render();
-  void HandleResize();
-  void AddLayer(IRenderLayer* layer);
-  void ProcessEvent(SDL_Event* event);
+    public:
+    Window(int width, int height);
+    ~Window();
+    void Render();
+    void HandleResize();
+    void AddLayer(IRenderLayer* layer);
+    void ProcessEvent(SDL_Event* event);
 
-  static int FRAME;
-  bool visible;
-  int width, height;
-private:
-  std::unique_ptr<WindowImpl> self;
+    static int FRAME;
+    bool visible;
+    int width, height;
+    private:
+    std::unique_ptr<WindowImpl> self;
 };
 
 

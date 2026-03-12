@@ -23,35 +23,35 @@ SDL_Surface* CreateRGBASurface(int width, int height);
 
 
 struct ShaderProgram: nocopy {
-  GLuint id;
-  ShaderProgram(const char* vertex_shader, const char* fragment_shader);
-  ~ShaderProgram();
+    GLuint id;
+    ShaderProgram(const char* vertex_shader, const char* fragment_shader);
+    ~ShaderProgram();
   
-private:
-  void AttachShader(GLenum type, const GLchar* source);
+    private:
+    void AttachShader(GLenum type, const GLchar* source);
 };
 
 
 struct Texture: nocopy {
-  GLuint id;
-  Texture(SDL_Surface* surface = nullptr);
-  ~Texture();
-  void CopyFromPixels(int width, int height, GLenum format, void* pixels);
-  void CopyFromSurface(SDL_Surface* surface);
+    GLuint id;
+    Texture(SDL_Surface* surface = nullptr);
+    ~Texture();
+    void CopyFromPixels(int width, int height, GLenum format, void* pixels);
+    void CopyFromSurface(SDL_Surface* surface);
 };
 
 
 struct VertexBuffer: nocopy {
-  GLuint id;
-  VertexBuffer();
-  ~VertexBuffer();
+    GLuint id;
+    VertexBuffer();
+    ~VertexBuffer();
 };
 
 
 struct GlContext: nocopy {
-  SDL_GLContext id;
-  GlContext(SDL_Window* window);
-  ~GlContext();
+    SDL_GLContext id;
+    GlContext(SDL_Window* window);
+    ~GlContext();
 };
 
 

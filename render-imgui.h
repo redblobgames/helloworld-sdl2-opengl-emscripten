@@ -12,14 +12,14 @@ struct RenderImGuiImpl;
 
 
 class RenderImGui: public IRenderLayer {
-public:
-  RenderImGui();
-  ~RenderImGui();
-  virtual void Render(SDL_Window* window, bool reset);
-  virtual void ProcessEvent(SDL_Event* event);
+    public:
+    RenderImGui();
+    ~RenderImGui();
+    virtual void Render(SDL_Window* window, bool reset);
+    virtual void ProcessEvent(SDL_Event* event);
   
-protected:
-  std::unique_ptr<RenderImGuiImpl> self;
+    protected:
+    std::unique_ptr<RenderImGuiImpl> self;
 };
 
 
