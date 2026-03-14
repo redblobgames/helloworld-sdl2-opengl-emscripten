@@ -14,19 +14,19 @@
 
 #include <vector>
 
-#define SHOW_INPUT 1
+// Sometimes I want to see the keyboard events across platforms and browsers
+#define DEBUG_SHOW_KEY_EVENTS 1
 
 struct RenderImGuiImpl {
     Window* window;
-    Texture font_texture;
     VertexBuffer vbo, ibo;
 
-    uint32_t timestamp;
-    bool mouse_button_pressed;
-    bool enter_pressed;
+    bool enter_pressed_previous_frame;
 
+#if DEBUG_SHOW_KEY_EVENTS
     SDL_Scancode most_recent_scancode = SDL_SCANCODE_UNKNOWN;
     SDL_Keycode most_recent_keycode;
+#endif
 
     RenderImGuiImpl(Window* window);
     ~RenderImGuiImpl();
@@ -36,6 +36,11 @@ struct RenderImGuiImpl {
 namespace {
     const char* Wrap_SDL_GetClipboardText(void*) { return SDL_GetClipboardText(); }
     void Wrap_SDL_SetClipboardText(void*, const char* s) { SDL_SetClipboardText(s); }
+}
+
+
+float RenderImGui::GetWindowScale() {
+    return ImGui_ImplSDL2_GetContentScaleForDisplay(0);
 }
 
 
@@ -49,11 +54,9 @@ RenderImGui::~RenderImGui() {
 
 RenderImGuiImpl::RenderImGuiImpl(Window* window_)
     : window(window_),
-      timestamp(SDL_GetTicks()),
-      mouse_button_pressed(false),
-      enter_pressed(false)
+      enter_pressed_previous_frame(false)
 {
-    // Some of this code is from imgui/examples/example_sdl2_opengl3/main.cpp
+    // Most of this code is based on imgui/examples/example_sdl2_opengl3/main.cpp
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -68,12 +71,11 @@ RenderImGuiImpl::RenderImGuiImpl(Window* window_)
 
     // Setup scaling
     ImGuiStyle& style = ImGui::GetStyle();
-    float main_scale = ImGui_ImplSDL2_GetContentScaleForDisplay(0); // NOTE: for non-Apple, non-Emscripten, non-Android, non-Wayland
-    style.ScaleAllSizes(main_scale);        // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
-    style.FontScaleDpi = main_scale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
+    float main_scale = RenderImGui::GetWindowScale();
+    style.ScaleAllSizes(main_scale);
+    style.FontScaleDpi = main_scale;
 
     // Setup Platform/Renderer backends
-
     ImGui_ImplSDL2_InitForOpenGL(window->GetSdlWindow(), window->GetGlContext());
     GLERRORS("ImGui_ImplSDL2_InitForOpenGL");
     ImGui_ImplOpenGL3_Init(window->GetGlslVersion());
@@ -95,11 +97,6 @@ RenderImGuiImpl::~RenderImGuiImpl() {
 void RenderImGui::Render(SDL_Window* /* already in impl */, bool reset) {
     ImGuiIO& io = ImGui::GetIO();
 
-    // Time since last frame:
-    uint32_t new_timestamp = SDL_GetTicks();
-    io.DeltaTime = (new_timestamp - self->timestamp) / 1000.0f;
-    self->timestamp = new_timestamp;
-  
     ImGui_ImplOpenGL3_NewFrame();
     GLERRORS("ImGui_ImplOpenGL3_NewFrame");
     ImGui_ImplSDL2_NewFrame();
@@ -108,10 +105,10 @@ void RenderImGui::Render(SDL_Window* /* already in impl */, bool reset) {
     GLERRORS("ImGui::NewFrame");
   
     ImGui::SetNextWindowPos(ImVec2(0, 40));
-    ImGui::SetNextWindowSize(ImVec2(400, 70 + 50 * SHOW_INPUT), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(400, 70 + 50 * DEBUG_SHOW_KEY_EVENTS), ImGuiCond_FirstUseEver);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f));
     ImGui::Begin("Status", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    // TODO: GUI should be defined elsewhere
+
     ImGui::Text("Hello from SDL %d.%d.%d ImGui %s",
                 SDL_MAJOR_VERSION,
                 SDL_MINOR_VERSION,
@@ -120,7 +117,7 @@ void RenderImGui::Render(SDL_Window* /* already in impl */, bool reset) {
                );
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-#if SHOW_INPUT
+#if DEBUG_SHOW_KEY_EVENTS
     ImGui::Text("  capturemouse=%d capturekeyboard=%d textinput=%d",
                 io.WantCaptureMouse,
                 io.WantCaptureKeyboard,
@@ -171,7 +168,12 @@ void RenderImGui::Render(SDL_Window* /* already in impl */, bool reset) {
     style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor::HSV(0, 0.5f, 0.8f);
     style.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor::HSV(0, 0.7f, 0.5f);
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, io.WantTextInput ? 1.0f : 0.7f));
+    // I want the window color to depend on whether the input box has
+    // focus. But in an immediate mode gui the input box hasn't been
+    // created yet so we can't ask if it's focused. I use this static bool
+    // to remember whether it was focused in the previous frame.
+    static bool chat_box_focused = false;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, chat_box_focused ? 1.0f : 0.7f));
     ImGui::SetNextWindowSize(ImVec2(chat_window_width, chat_window_height), ImGuiCond_FirstUseEver);
     ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
     ImGui::BeginChild("output-area", ImVec2(ImGui::GetContentRegionAvail().x, chat_window_height - 50), false, 0);
@@ -196,10 +198,22 @@ void RenderImGui::Render(SDL_Window* /* already in impl */, bool reset) {
         if (input[0] != '\0') { chat_lines.push_back(input); }
         scroll_to_bottom = true;
         input[0] = '\0';
-    } else if (!io.WantTextInput && self->enter_pressed) {
-        ImGui::SetKeyboardFocusHere(-1);
     }
-    self->enter_pressed = false;
+    // Chat box focus handling: I use the Enter key globally (see
+    // RenderImGui::ProcessEvent) to toggle the chat box.
+    if (self->enter_pressed_previous_frame) {
+        if (!chat_box_focused) {
+            ImGui::SetKeyboardFocusHere(-1); // -1 means previous item, the InputText()
+        } else {
+            ImGui::SetWindowFocus(nullptr);
+        }
+    }
+    // If the only way to focus were the Enter key, then I could track
+    // that myself, but another way to focus is by clicking on the
+    // chat box. So ImGui keeps track of the state, and I read it with
+    // ImGui::IsItemFocused()
+    chat_box_focused = ImGui::IsItemFocused();
+    self->enter_pressed_previous_frame = false;
 
     ImGui::End();
     ImGui::PopStyleColor();
@@ -218,14 +232,17 @@ void RenderImGui::Render(SDL_Window* /* already in impl */, bool reset) {
 
 
 void RenderImGui::ProcessEvent(SDL_Event* event) {
+    ImGui_ImplSDL2_ProcessEvent(event);
     switch (event->type) {
         case SDL_KEYDOWN: case SDL_KEYUP: {
             int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
+#if DEBUG_SHOW_KEY_EVENTS
             self->most_recent_keycode = key;
             self->most_recent_scancode = event->key.keysym.scancode;
+#endif
             if (event->type == SDL_KEYDOWN && key == SDLK_RETURN) {
                 // Used to activate the chat box
-                self->enter_pressed = true;
+                self->enter_pressed_previous_frame = true;
             }
             break;
        }

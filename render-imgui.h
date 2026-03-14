@@ -12,13 +12,15 @@ struct SDL_Window;
 struct RenderImGuiImpl;
 
 class RenderImGui: public IRenderLayer {
-    public:
+  public:
+    static float GetWindowScale();
+
     RenderImGui(Window* window);
     ~RenderImGui();
     virtual void Render(SDL_Window*, bool reset);
     virtual void ProcessEvent(SDL_Event* event);
-  
-    protected:
+
+  protected:
     std::unique_ptr<RenderImGuiImpl> self;
 };
 
