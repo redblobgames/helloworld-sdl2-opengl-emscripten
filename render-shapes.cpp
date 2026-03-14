@@ -10,6 +10,11 @@
 #include <vector>
 
 
+// A mod function that handles negative 'a' values but not negative 'b' values
+int mod(int a, int b) {
+    return (a % b + b) % b;
+}
+
 namespace {
   
     struct Attributes {
@@ -66,9 +71,15 @@ namespace {
     GLchar fragment_shader[] = R"(
   varying vec3 v_distance;
   varying vec4 v_color;
+  float median(vec3 rgb) {
+    return max(min(rgb.r, rgb.g), min(max(rgb.r, rgb.g), rgb.b));
+  }
   void main() {
-/* NOTE: this doesn't handle corners correctly; that's what the other two edge fields are for, but I haven't figured out how to use them */
-    gl_FragColor = 0.0 <= v_distance.x && v_distance.x <= 0.03 ? vec4(0.0,0.0,0.0,1.0) : v_color;
+    float distance = median(v_distance);
+    gl_FragColor = mix(vec4(0, 0, 0, 1), v_color, step(0.03, distance));
+/* Debug: show distance field
+    gl_FragColor = vec4(distance, distance * 2.0, distance * 3.0, 1);
+*/
 /* Debug: show colors for each of the three distance fields
     gl_FragColor = vec4(0.0 <= v_distance.y && v_distance.y <= 0.2 ? 1.0 : v_distance.y < 0.0? 0.5 : 0.0,
                         0.0 <= v_distance.x && v_distance.x <= 0.2 ? 0.5 : v_distance.x < 0.0? 0.3 : 0.0,
@@ -134,11 +145,12 @@ void RenderShapes::SetShapes(const std::vector<Shape>& shapes) {
                 // NOTE: I'm assuming adjacent triangles in the vector are
                 // adjacent geometrically! I'll generalize later if I can make
                 // this work properly.
-                const auto& prev_tri = shape.triangles[(j - 1 + shape.triangles.size()) % shape.triangles.size()];
-                const auto& next_tri = shape.triangles[(j + 1) % shape.triangles.size()];
+                const auto& prev_tri = shape.triangles[mod(j-1, shape.triangles.size())];
+                const auto& next_tri = shape.triangles[mod(j+1, shape.triangles.size())];
                 V.distance[1] = distance_from_edge_to_point(prev_tri.x[0], prev_tri.y[0], prev_tri.x[1], prev_tri.y[1], tri.x[k], tri.y[k]);
                 V.distance[2] = distance_from_edge_to_point(next_tri.x[0], next_tri.y[0], next_tri.x[1], next_tri.y[1], tri.x[k], tri.y[k]);
                 i++;
+                // TODO: this *almost* works. It renders all the edges correctly except for the leftmost triangle.
             }
         }
     }
