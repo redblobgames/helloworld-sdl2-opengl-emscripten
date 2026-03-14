@@ -27,7 +27,7 @@ struct ShaderProgram: nocopy {
     ShaderProgram(const char* vertex_shader, const char* fragment_shader);
     ~ShaderProgram();
   
-    private:
+  private:
     void AttachShader(GLenum type, const GLchar* source);
 };
 

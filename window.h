@@ -13,7 +13,7 @@ union SDL_Event;
 struct WindowImpl;
 
 class Window {
-    public:
+  public:
     Window(int width, int height);
     ~Window();
     void Render();
@@ -27,7 +27,7 @@ class Window {
     static int FRAME;
     bool visible;
     int width, height;
-    private:
+  private:
     std::unique_ptr<WindowImpl> self;
 };
 

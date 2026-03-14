@@ -13,12 +13,12 @@ struct RenderSurfaceImpl;
 
 
 class RenderSurface: public IRenderLayer {
-    public:
+  public:
     RenderSurface(SDL_Surface* surface);
     ~RenderSurface();
     virtual void Render(SDL_Window* window, bool reset);
 
-    protected:
+  protected:
     std::unique_ptr<RenderSurfaceImpl> self;
 };
 

@@ -28,14 +28,14 @@ struct Shape {
 
 
 class RenderShapes: public IRenderLayer {
-    public:
+  public:
     RenderShapes();
     ~RenderShapes();
     virtual void Render(SDL_Window* window, bool reset);
 
     void SetShapes(const std::vector<Shape>& shapes);
   
-    protected:
+  protected:
     std::unique_ptr<RenderShapesImpl> self;
 };
 

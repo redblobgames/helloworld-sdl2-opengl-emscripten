@@ -15,7 +15,7 @@ struct SpriteLocation {
 };
 
 class Atlas {
-    public:
+  public:
     Atlas();
     ~Atlas();
 
@@ -29,7 +29,7 @@ class Atlas {
     // Get image data for a given sprite id
     const SpriteLocation& GetLocation(int id) const;
   
-    private:
+  private:
     std::unique_ptr<AtlasImpl> self;
 };
 
