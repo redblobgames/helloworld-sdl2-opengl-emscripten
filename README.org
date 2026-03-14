@@ -1,10 +1,10 @@
 [[http://unmaintained.tech/][http://unmaintained.tech/badge.svg]]
 
-I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled to JS+WebGL with Emscripten+Wasm. There are some SDL2 + OpenGL tutorials out there but most of them don't target the WebGL subset of OpenGL. I can't use the fixed function pipeline, so older OpenGL code won't work, and I can't use newer things like vertex array objects, instancing, or geometry shaders, so newer OpenGL code often won't work.
+I wanted a bare-bones program for SDL2 + OpenGL 2D rendering that also compiled to JS+WebGL with Emscripten+Wasm. There are some SDL2 + OpenGL tutorials out there but most of them don't target the WebGL subset of OpenGL. I can't use the fixed function pipeline, so older OpenGL code won't work, and I can't use newer things like vertex array objects, instancing, or geometry shaders, so newer OpenGL code often won't work. [Note: as of 2026, the WebGL 1 vertex array object extension has [[https://web3dsurvey.com/webgl/extensions/OES_vertex_array_object][100% support]], and instancing is [[https://web3dsurvey.com/webgl/extensions/ANGLE_instanced_arrays][near 100%]]. And both are fully supported in WebGL 2.]
 
 * Installation
 
-The Makefile should work on Mac OS X and Linux. The code should work on Windows and other SDL+OpenGL platforms but I haven't tested that. 
+The Makefile should work on Linux and MacOS. The code should work on Windows and other SDL+OpenGL platforms but may need minor modifications; I haven't tested them.
 
 ** Install SDL2
 
@@ -55,9 +55,8 @@ make emscripten
 
 and then tell the webserver to serve the files from =www/=.
 
-My Emscripten-ed wasm output is [[https://www.redblobgames.com/x/1535-opengl-emscripten/helloworld/][on my web site]].
+My Emscripten-ed wasm output is [[https://www.redblobgames.com/x/1535-opengl-emscripten/][on my web site]].
 
 I've also written a partial =CMakeLists.txt= file but am not using it yet.
 
 The font included in this project is [[https://www.google.com/fonts/specimen/Droid+Sans][Droid Sans]], under the Apache License v2. The ImGui library includes the Proggy font.
-

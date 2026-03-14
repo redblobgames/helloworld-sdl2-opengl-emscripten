@@ -2,6 +2,7 @@
 // License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 
 #include "common.h"
+#include "imgui_impl_sdl2.h"
 #include "glwrappers.h"
 #include "window.h"
 #include "render-sprites.h"
@@ -33,6 +34,8 @@ Triangle tri(float x1, float y1, float x2, float y2, float x3, float y3) {
 void main_loop() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL2_ProcessEvent(&event);
+        GLERRORS("ImGui_ImplSDL2_ProcessEvent");
         switch (event.type) {
          case SDL_QUIT: {
              main_loop_running = false;
@@ -103,7 +106,8 @@ int main(int, char**) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) { FAIL("SDL_Init"); }
     SDL_GL_SetSwapInterval(1);
 
-    window = std::unique_ptr<Window>(new Window(800, 600));
+    float main_scale = ImGui_ImplSDL2_GetContentScaleForDisplay(0);
+    window = std::unique_ptr<Window>(new Window(int(800 * main_scale), int(600 * main_scale)));
 
     Font font("imgui/misc/fonts/DroidSans.ttf", 32);
 
@@ -133,7 +137,7 @@ int main(int, char**) {
 #endif
 
 #if SHOW_IMGUI
-    std::unique_ptr<RenderImGui> ui_layer(new RenderImGui());
+    std::unique_ptr<RenderImGui> ui_layer(new RenderImGui(window.get()));
     window->AddLayer(ui_layer.get());
 #endif
   

@@ -4,18 +4,18 @@
 #ifndef RENDER_IMGUI_H
 #define RENDER_IMGUI_H
 
+#include "window.h"
 #include "render-layer.h"
 #include <memory>
 
 struct SDL_Window;
 struct RenderImGuiImpl;
 
-
 class RenderImGui: public IRenderLayer {
     public:
-    RenderImGui();
+    RenderImGui(Window* window);
     ~RenderImGui();
-    virtual void Render(SDL_Window* window, bool reset);
+    virtual void Render(SDL_Window*, bool reset);
     virtual void ProcessEvent(SDL_Event* event);
   
     protected:

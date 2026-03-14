@@ -8,9 +8,20 @@
 void GLERRORS(const char* label) {
 #ifndef __EMSCRIPTEN__
     while (true) {
+        const char* name = nullptr;
         GLenum err = glGetError();
-        if (err == GL_NO_ERROR) { break; }
-        std::cerr << label << " glGetError returned " << err << std::endl;
+        switch (err) {
+         case GL_NO_ERROR:                      return;
+         case GL_INVALID_ENUM:                  name = "GL_INVALID_ENUM";                  break;
+         case GL_INVALID_VALUE:                 name = "GL_INVALID_VALUE";                 break;
+         case GL_INVALID_OPERATION:             name = "GL_INVALID_OPERATION";             break;
+         case GL_INVALID_FRAMEBUFFER_OPERATION: name = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
+         case GL_OUT_OF_MEMORY:                 name = "GL_OUT_OF_MEMORY";                 break;
+         case GL_STACK_UNDERFLOW:               name = "GL_STACK_UNDERFLOW";               break;
+         case GL_STACK_OVERFLOW:                name = "GL_STACK_OVERFLOW";                break;
+         default:                               name = "?";                                break;
+        }
+        std::cerr << label << " glGetError returned " << err << " " << name << std::endl;
     }
 #endif
 }
@@ -89,6 +100,7 @@ void ShaderProgram::AttachShader(GLenum type, const GLchar* source) {
         GLchar log[1024];
         glGetShaderInfoLog(shader_id, 1024, nullptr, log);
         std::cerr << log << std::endl;
+        std::cerr << source << std::endl;
         FAIL("compile shader");
     }
 

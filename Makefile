@@ -7,17 +7,19 @@
 # For native (Mac OS X, Linux) builds, $(BINDIR)/ and assets/ are needed
 # For emscripten builds, $(WWWDIR)/ is needed
 
-MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui \
-    imgui/imgui imgui/imgui_draw imgui/imgui_widgets imgui/imgui_tables imgui/imgui_demo
-ASSETS = assets/red-blob.png imgui/misc/fonts/DroidSans.ttf
-
-UNAME = $(shell uname -s)
 BUILDDIR = build
 BINDIR = bin
 WWWDIR = www
 _MKDIRS := $(shell mkdir -p $(BINDIR) $(WWWDIR) $(BUILDDIR))
 
-COMMONFLAGS = -std=c++11 -MMD -MP -isystem .
+MODULES = main glwrappers window atlas font render-sprites render-shapes render-surface render-imgui \
+    imgui/imgui imgui/imgui_draw imgui/imgui_widgets imgui/imgui_tables imgui/imgui_demo \
+    imgui/backends/imgui_impl_sdl2 $(BUILDDIR)/imgui_impl_opengl3_no_vao
+ASSETS = assets/red-blob.png imgui/misc/fonts/DroidSans.ttf
+
+UNAME = $(shell uname -s)
+
+COMMONFLAGS = -std=c++11 -MMD -MP -isystem . -Iimgui/ -Iimgui/backends/
 LOCALFLAGS = -g -O2 $(COMMONFLAGS) $(shell pkg-config --cflags sdl2)
 
 # Choose the warnings I want, and disable when compiling third party code
@@ -33,9 +35,9 @@ else
 endif
 
 EMXX = em++
-EMXXFLAGS = $(COMMONFLAGS) -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2
+EMXXFLAGS = $(COMMONFLAGS) -Oz -s USE_SDL=2 -s USE_SDL_IMAGE=2 -s DISABLE_EXCEPTION_CATCHING=1
 # -s SAFE_HEAP=1 -s ASSERTIONS=2 --profiling  -s DEMANGLE_SUPPORT=1
-EMXXLINK = -s TOTAL_MEMORY=50331648 --use-preload-plugins
+EMXXLINK = -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -s TOTAL_MEMORY=50331648 --use-preload-plugins
 
 help:
 	@echo "Make targets:"
@@ -57,6 +59,10 @@ $(WWWDIR)/index.html: emscripten-shell.html
 
 $(WWWDIR)/_main.js: $(MODULES:%=$(BUILDDIR)/%.em.o) $(ASSETS) Makefile
 	$(EMXX) $(EMXXFLAGS) $(EMXXLINK) $(filter %.o,$^) $(ASSETS:%=--preload-file %) -o $@
+
+# I disabled VAO because the rest of my code from 2015 doesn't use them
+$(BUILDDIR)/imgui_impl_opengl3_no_vao.cpp: imgui/backends/imgui_impl_opengl3.cpp imgui_impl_opengl3.patch
+	cat imgui_impl_opengl3.patch | patch -o $@ $<
 
 $(BUILDDIR)/%.em.o: %.cpp Makefile
 	@mkdir -p $(dir $@)

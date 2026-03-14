@@ -8,6 +8,7 @@
 #include <memory>
 
 struct SDL_Window;
+struct GlContext;
 union SDL_Event;
 struct WindowImpl;
 
@@ -19,6 +20,9 @@ class Window {
     void HandleResize();
     void AddLayer(IRenderLayer* layer);
     void ProcessEvent(SDL_Event* event);
+    SDL_Window* GetSdlWindow();
+    GlContext* GetGlContext();
+    const char* GetGlslVersion();
 
     static int FRAME;
     bool visible;

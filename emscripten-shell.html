@@ -65,8 +65,8 @@
           })(),
           printErr: function(text) { console.error(text); },
           setStatus: (function(text) {
-              var element = document.getElementById('status');
-              if (element) element.textContent = ''; // clear browser cache
+              var element = document.getElementById('status') ?? {textContent: 'ignore'};
+              element.textContent = '';
               return function(text) { element.textContent = text; };
           })(),
           canvas: document.getElementById('canvas'),

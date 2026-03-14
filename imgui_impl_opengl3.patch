@@ -1,0 +1,14 @@
+--- imgui/backends/imgui_impl_opengl3.cpp	2026-03-13 17:47:44
++++ imgui_impl_opengl3_no_vao.cpp	2026-03-13 17:47:40
+@@ -183,9 +183,9 @@
+ 
+ // Vertex arrays are not supported on ES2/WebGL1 unless Emscripten which uses an extension
+ #ifndef IMGUI_IMPL_OPENGL_ES2
+-#define IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
++#define DISABLED_IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
+ #elif defined(__EMSCRIPTEN__)
+-#define IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
++#define DISABLED_IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
+ #define glBindVertexArray       glBindVertexArrayOES
+ #define glGenVertexArrays       glGenVertexArraysOES
+ #define glDeleteVertexArrays    glDeleteVertexArraysOES
